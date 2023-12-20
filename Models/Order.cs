@@ -110,7 +110,9 @@ namespace asp.net.Models
 
         public  Customer Customer { get; set; }
         public Employee Employee { get; set; }
+        public AddressBook AddressBook { get; set; }
         public virtual ICollection<OrderHistories> OrderHistories { get; set; }
+        public virtual ICollection<OrderItems> OrderItems { get; set; }
     }
 }
 

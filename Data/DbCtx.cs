@@ -11,6 +11,9 @@ namespace asp.net.Data
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderHistories> OrderHistories { get; set; }
+        public DbSet<OrderItems> OrderItems { get; set; }
+        public DbSet<ProductVariant> ProductVariants { get; set; }
+        public DbSet<AddressBook> AddressBooks { get; set; }
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
             Database.EnsureCreated();
@@ -45,6 +48,7 @@ namespace asp.net.Data
             });
             modelBuilder.Entity<Order>(entity =>
             {
+                entity.HasOne(e => e.AddressBook).WithMany(e => e.Order).HasForeignKey(e => e.AddressId);
                 entity.HasOne(e => e.Customer).WithMany(e => e.Order).HasForeignKey(e => e.CustomerId);
                 entity.HasOne(e => e.Employee).WithMany(e => e.Order).HasForeignKey(e => e.EmployeeId);
             });
@@ -52,6 +56,11 @@ namespace asp.net.Data
             {
                 entity.GetType().GetProperty("State").SetValue(entity, OrderHistoriesState.Draft);
                 entity.HasOne(e => e.Order).WithMany(e => e.OrderHistories).HasForeignKey(e => e.OrderId);
+            });
+            modelBuilder.Entity<OrderItems>(entity =>
+            {
+                entity.HasOne(e => e.Order).WithMany(e => e.OrderItems).HasForeignKey(e => e.OrderId);
+                entity.HasOne(e => e.ProductVariant).WithMany(e => e.OrderItems).HasForeignKey(e => e.VariantId);
             });
         }
     }
