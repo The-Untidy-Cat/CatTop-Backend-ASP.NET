@@ -55,7 +55,8 @@ namespace asp.net.Models
         public string State { get; set; }
 
         [Column("user_id")]
-        public int? UserId { get; set; }
+        [ForeignKey("User")]
+        public int UserId { get; set; }
         public User User { get; set; }
 
         [Column("created_at")]
