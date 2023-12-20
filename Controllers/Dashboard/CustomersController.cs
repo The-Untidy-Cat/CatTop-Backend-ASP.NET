@@ -1,0 +1,171 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using asp.net.Data;
+using asp.net.Models;
+
+namespace asp.net.Controllers.Dashboard
+{
+    [Route("v1/dashboard")]
+    [ApiController]
+
+    public class SearchForm
+    {
+        public int Limit { get; set; }
+        public int Offset { get; set; }
+        public string Filter { get; set; }
+        public string Keyword { get; set; }
+    }
+
+    public class CustomersController : ControllerBase
+    {
+        private readonly DbCtx _context;
+
+        public CustomersController(DbCtx context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Customers
+        [HttpGet("/")]
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers([FromQuery] SearchForm request)
+        {
+            if (_context.Customers == null)
+            {
+                return NotFound();
+            }
+            var customers = _context.Customers.Select(c => new
+            {
+                id = c.Id,
+                first_name = c.FirstName,
+                last_name = c.LastName,
+                email = c.Email,
+                phone_number = c.PhoneNumber,
+            });
+            if (request.Filter != null && request.Keyword != null)
+            {
+                switch (request.Filter)
+                {
+                    case "name":
+                        customers = customers.Where(c => c.first_name.Contains(request.Keyword));
+                        break;
+                    case "phone_number":
+                        customers = customers.Where(c => c.phone_number.Contains(request.Keyword));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var length = customers.Count();
+            var offset = request.Offset != null ? request.Offset : 0;
+            var limit = request.Limit != null ? request.Limit : 10;
+            var records = 
+                await customers.Skip(offset).Take(limit).ToListAsync();
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    records,
+                    offset,
+                    limit,
+                    length,
+                }
+            };
+            return Ok(response);
+        }
+
+        // GET: api/Customers/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Customer>> GetCustomer(int id)
+        {
+            if (_context.Customers == null)
+            {
+                return NotFound();
+            }
+            var customer = await _context.Customers.FindAsync(id);
+
+            if (customer == null)
+            {
+                return NotFound();
+            }
+
+            return customer;
+        }
+
+        // PUT: api/Customers/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutCustomer(int id, Customer customer)
+        {
+            if (id != customer.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(customer).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!CustomerExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/Customers
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
+        {
+            if (_context.Customers == null)
+            {
+                return Problem("Entity set 'DbCtx.Customers'  is null.");
+            }
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetCustomer", new { id = customer.Id }, customer);
+        }
+
+        // DELETE: api/Customers/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCustomer(int id)
+        {
+            if (_context.Customers == null)
+            {
+                return NotFound();
+            }
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
+            {
+                return NotFound();
+            }
+
+            _context.Customers.Remove(customer);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool CustomerExists(int id)
+        {
+            return (_context.Customers?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
+    }
+}
