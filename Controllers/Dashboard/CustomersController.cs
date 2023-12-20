@@ -46,15 +46,15 @@ namespace asp.net.Controllers.Dashboard
                 email = c.Email,
                 phone_number = c.PhoneNumber,
             });
-            if (request.Filter != null && request.Keyword != null)
+            if (request.filter != null && request.keyword != null)
             {
-                switch (request.Filter)
+                switch (request.filter)
                 {
                     case "name":
-                        customers = customers.Where(c => c.first_name.Contains(request.Keyword));
+                        customers = customers.Where(c => c.first_name.Contains(request.keyword));
                         break;
                     case "phone_number":
-                        customers = customers.Where(c => c.phone_number.Contains(request.Keyword));
+                        customers = customers.Where(c => c.phone_number.Contains(request.keyword));
                         break;
                     default:
                         break;
@@ -62,15 +62,15 @@ namespace asp.net.Controllers.Dashboard
             }
             var length = customers.Count();
             var records =
-                await customers.Skip(request.Offset).Take(request.Limit).ToListAsync();
+                await customers.Skip(request.offset).Take(request.limit).ToListAsync();
             var response = new
             {
                 code = 200,
                 data = new
                 {
                     records,
-                    request.Offset,
-                    request.Limit,
+                    request.offset,
+                    request.limit,
                     length,
                 }
             };
