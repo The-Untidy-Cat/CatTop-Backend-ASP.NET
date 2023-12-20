@@ -9,7 +9,8 @@ namespace asp.net.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Employee> Employees { get; set; }
-
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderHistories> OrderHistories { get; set; }
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
             Database.EnsureCreated();
@@ -41,6 +42,16 @@ namespace asp.net.Data
             modelBuilder.Entity<Employee>(entity =>
             {
                 entity.HasOne(e => e.User).WithOne(e => e.Employee);
+            });
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.HasOne(e => e.Customer).WithMany(e => e.Order).HasForeignKey(e => e.CustomerId);
+                entity.HasOne(e => e.Employee).WithMany(e => e.Order).HasForeignKey(e => e.EmployeeId);
+            });
+            modelBuilder.Entity<OrderHistories>(entity =>
+            {
+                entity.GetType().GetProperty("State").SetValue(entity, OrderHistoriesState.Draft);
+                entity.HasOne(e => e.Order).WithMany(e => e.OrderHistories).HasForeignKey(e => e.OrderId);
             });
         }
     }

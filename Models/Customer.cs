@@ -67,5 +67,7 @@ namespace asp.net.Models
         [Column("updated_at")]
         [Display(Name = "updated_at")]
         public DateTime? UpdatedAt { get; set; }
+
+        public virtual ICollection<Order> Order { get; set; }
     }
 }
