@@ -54,7 +54,6 @@ namespace asp.net.Data
             });
             modelBuilder.Entity<OrderHistories>(entity =>
             {
-                entity.GetType().GetProperty("State").SetValue(entity, OrderHistoriesState.Draft);
                 entity.HasOne(e => e.Order).WithMany(e => e.OrderHistories).HasForeignKey(e => e.OrderId);
             });
             modelBuilder.Entity<OrderItems>(entity =>
