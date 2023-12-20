@@ -15,10 +15,10 @@ namespace asp.net.Controllers.Dashboard
 
     public class SearchForm
     {
-        public int Limit { get; set; }
-        public int Offset { get; set; }
-        public string Filter { get; set; }
-        public string Keyword { get; set; }
+        public int limit { get; set; }
+        public int offset { get; set; }
+        public string filter { get; set; }
+        public string keyword { get; set; }
     }
 
     public class CustomersController : ControllerBase
@@ -61,18 +61,16 @@ namespace asp.net.Controllers.Dashboard
                 }
             }
             var length = customers.Count();
-            var offset = request.Offset != null ? request.Offset : 0;
-            var limit = request.Limit != null ? request.Limit : 10;
-            var records = 
-                await customers.Skip(offset).Take(limit).ToListAsync();
+            var records =
+                await customers.Skip(request.Offset).Take(request.Limit).ToListAsync();
             var response = new
             {
                 code = 200,
                 data = new
                 {
                     records,
-                    offset,
-                    limit,
+                    request.Offset,
+                    request.Limit,
                     length,
                 }
             };
