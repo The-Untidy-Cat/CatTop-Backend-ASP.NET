@@ -23,15 +23,14 @@ namespace asp.net.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasIndex(e => e.Username).IsUnique();
-                entity.HasOne(e => e.Customer).WithOne(e => e.User).HasForeignKey<Customer>(e => e.UserId);
-                entity.HasOne(e => e.Employee).WithOne(e => e.User).HasForeignKey<Employee>(e => e.UserId);
+
             });
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.PhoneNumber).IsUnique();
                 entity.HasIndex(e => e.UserId).IsUnique();
-                entity.HasOne(e => e.User).WithOne(e => e.Customer);
+                entity.HasOne(c => c.User).WithOne(u => u.Customer).HasForeignKey<Customer>(c => c.UserId);
             });
             modelBuilder.Entity<UserRole>(entity =>
             {

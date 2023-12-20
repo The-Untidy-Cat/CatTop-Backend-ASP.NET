@@ -48,16 +48,14 @@ namespace asp.net.Models
         public DateTime? DateOfBirth { get; set; }
 
         [Column("gender")]
-        public int? gender { get; set; }
+        public int? Gender { get; set; }
 
         [Column("state")]
         [EnumDataType(typeof(CustomerState))]
         public string State { get; set; }
 
         [Column("user_id")]
-        [ForeignKey("User")]
-        public int UserId { get; set; }
-        
+        public int? UserId { get; set; }
         public User User { get; set; }
 
         [Column("created_at")]

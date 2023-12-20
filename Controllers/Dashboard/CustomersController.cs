@@ -40,6 +40,7 @@ namespace asp.net.Controllers.Dashboard
                 last_name = c.LastName,
                 email = c.Email,
                 phone_number = c.PhoneNumber,
+                c.User
             });
             if (request.filter != null && request.keyword != null)
             {
