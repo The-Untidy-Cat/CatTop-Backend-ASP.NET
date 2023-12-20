@@ -9,6 +9,9 @@ namespace asp.net.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+        public DbSet<ProductVariants> ProductVariants { get; set; }
 
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
@@ -41,6 +44,18 @@ namespace asp.net.Data
             modelBuilder.Entity<Employee>(entity =>
             {
                 entity.HasOne(e => e.User).WithOne(e => e.Employee);
+            });
+            modelBuilder.Entity<Brand>(entity =>
+            {
+                entity.HasIndex(e => e.Id).IsUnique();
+            });
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasIndex(e => e.Id).IsUnique();
+            });
+            modelBuilder.Entity<ProductVariants>(entity =>
+            {
+                entity.HasOne(e => e.Product).WithMany(e => e.ProductVariants).HasForeignKey(e => e.ProductID);
             });
         }
     }
