@@ -18,40 +18,43 @@ namespace asp.net.Models
     {
         [Required]
         [Column("id")]
+        [Key]
         public int Id { get; set; }
 
         [Required]
         [Column("name")]
-        [Display(Name = "name")]
         [StringLength(255)]
         public string Name { get; set; }
 
         [Required]
         [Column("slug")]
-        [Display(Name = "slug")]
         [StringLength(255)]
         public string Slug { get; set; }
 
         [Column("description")]
-        [Display(Name = "description")]
         [StringLength(255)]
         public string Description { get; set; }
 
-        [Column("created_at")]
-        [Display(Name = "created_at")]
-        [Timestamp]
-        public DateTime? Created_at { get; set; }
-
-        [Column("updated_at")]
-        [Display(Name = "updated_at")]
-        [Timestamp]
-        public DateTime? Updated_at { get; set; }
-
         [Required]
         [Column("state")]
-        [Display(Name = "state")]
         [StringLength(255)]
         public string State { get; set; }
+
+        [Column("image")]
+        [StringLength(255)]
+        public string? Image { get; set; }
+
+        [Column("parent_id")]
+        [ForeignKey("brandPa")]
+        public int ParentId { get; set; }
+        public Brand brandPa { get; set; }
+        public Brand brandMain { get; set; }
+
+        [Column("create_at")]
+        public DateTime? CreateAt { get; set; }
+
+        [Column("updated_at")]
+        public DateTime? UpdateAt { get; set;}
 
     }
 }

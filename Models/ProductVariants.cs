@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
 namespace asp.net.Models
 {
-    public enum VariantState
+    enum VariantState
     {
         [EnumMember(Value = "draft")]
         Draft,
@@ -20,67 +20,73 @@ namespace asp.net.Models
     {
         [Required]
         [Column("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [Column("sku")]
         [Display(Name = "sku")]
         [StringLength(255)]
         public string SKU { get; set; }
-
         [Required]
         [Column("name")]
         [Display(Name = "name")]
         [StringLength(255)]
         public string Name { get; set; }
 
-        [Required]
-        [Column("state")]
-        [EnumDataType(typeof(VariantState))]
+        [Column("description")]
+        [Display(Name = "description")]
         [StringLength(255)]
-        public string State { get; set; }
+        public string Description { get; set; }
 
         [Required]
         [Column("product_id")]
-        public int ProductID { get; set; }
-
-        [Column("description")]
-        public string Description { get; set; }
-
-
+        [ForeignKey("Product")]
+        public long ProductID { get; set; }
 
         [Column("standard_price")]
+        [Display(Name = "standard_price")]
         public long StandardPrice { get; set; }
 
         [Column("tax_rate")]
+        [Display(Name = "tax_rate")]
         public double TaxRate { get; set; }
 
         [Column("discount")]
+        [Display(Name = "discount")]
         public double Discount { get; set; }
 
         [Column("extra_fee")]
+        [Display(Name = "extra_fee")]
         public double ExtraFee { get; set; }
 
         [Column("cost_price")]
+        [Display(Name = "cost_price")]
         public long CostPrice { get; set; }
 
         [Column("sale_price")]
+        [Display(Name = "sale_price")]
         public long SalePrice { get; set; }
 
         [Column("specifications")]
+        [Display(Name = "specifications")]
         [StringLength(255)]
         public string Specifications { get; set; }
 
-
+        [Required]
+        [Column("state")]
+        [EnumDataType(typeof(VariantState))]
+        public string State { get; set; }
 
         [Column("created_at")]
-        public DateTime? Created_at { get; set; }
+        [Display(Name = "created_at")]
+        public DateTime Created_at { get; set; }
 
         [Column("updated_at")]
-        public DateTime? Updated_at { get; set; }
+        [Display(Name = "updated_at")]
+        public DateTime Updated_at { get; set; }
 
-        public Product Product { get; set; }
+        //public Product Product { get; set; }
 
-        public virtual ICollection<OrderItems> OrderItems { get; set; }
+        public Cart Cart { get; set; }
     }
 }

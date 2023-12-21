@@ -79,6 +79,19 @@ namespace asp.net.Data
             {
                 entity.HasOne(e => e.Product).WithMany(e => e.ProductVariants).HasForeignKey(e => e.ProductID);
             });
+            modelBuilder.Entity<Brand>(entity =>
+            {
+                //entity.HasOne(e => e.brandPa).WithMany(e => e.brandMain).HasForeignKey(e => e.parent_id);
+            });
+            modelBuilder.Entity<AddressBook>(entity =>
+            {
+                entity.HasOne(c => c.Customer).WithOne(a => a.AddressBook);
+            });
+            modelBuilder.Entity<Cart>(entity =>
+            {
+                //entity.HasOne(c => c.Customer).WithOne(c => c.Cart);
+                //entity.HasOne(v => v.Variant)
+            });
         }
     }
 }
