@@ -10,8 +10,8 @@ using asp.net.Models;
 
 namespace asp.net.Controllers.Dashboard
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    [Route("v1/dashboard/orders")]
+
     public class OrdersController : ControllerBase
     {
         private readonly DbCtx _context;
@@ -21,25 +21,61 @@ namespace asp.net.Controllers.Dashboard
             _context = context;
         }
 
-        // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromQuery] SearchForm request)
         {
-          if (_context.Orders == null)
-          {
-              return NotFound();
-          }
-            return await _context.Orders.ToListAsync();
+            if (_context.Orders == null)
+            {
+                return NotFound();
+            }
+            var orders = _context.Orders.Select(o => new
+            {
+                id = o.Id,
+                customer_id = o.CustomerId,
+                //employee_id = o.EmployeeId,
+            });
+            if (request.filter != null && request.keyword != null)
+            {
+                switch (request.filter)
+                {
+                    case "customer_id":
+                        orders = orders.Where(o => o.customer_id.ToString().Contains(request.keyword));
+                        break;
+                    //        case "employee_id":
+                    //            orders = orders.Where(o => o.employee_id.ToString().Contains(request.keyword));
+                    //            break;
+                    default:
+                        break;
+                }
+            }
+                var length = orders.Count();
+            var records =
+                await orders
+                .Skip(request.offset).Take(request.limit)
+                .ToListAsync();
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    records,
+                    request.offset,
+                    request.limit,
+                    length,
+                }
+            };
+            return Ok(response);
+            //return await _context.Orders.ToListAsync();
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-          if (_context.Orders == null)
-          {
-              return NotFound();
-          }
+            if (_context.Orders == null)
+            {
+                return NotFound();
+            }
             var order = await _context.Orders.FindAsync(id);
 
             if (order == null)
@@ -86,10 +122,10 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost]
         public async Task<ActionResult<Order>> PostOrder(Order order)
         {
-          if (_context.Orders == null)
-          {
-              return Problem("Entity set 'DbCtx.Orders'  is null.");
-          }
+            if (_context.Orders == null)
+            {
+                return Problem("Entity set 'DbCtx.Orders'  is null.");
+            }
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 

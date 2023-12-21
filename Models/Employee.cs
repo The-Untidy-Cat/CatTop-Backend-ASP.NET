@@ -36,6 +36,6 @@ namespace asp.net.Models
         public int UserId { get; set; }
 
         public User User { get; set; }
-        public virtual ICollection<Order> Order { get; set; }
+        public  ICollection<Order>? Orders { get; set; }
     }
 }

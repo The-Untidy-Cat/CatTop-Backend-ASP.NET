@@ -60,11 +60,9 @@ namespace asp.net.Models
 
         [Required]
         [Column("customer_id")]
-        [ForeignKey("Customer")]
         public int CustomerId { get; set; }
 
         [Column("employee_id")]
-        [ForeignKey("Employee")]
         public int EmployeeId { get; set; }
 
         [Required]

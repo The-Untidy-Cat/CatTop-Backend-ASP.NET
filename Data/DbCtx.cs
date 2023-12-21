@@ -49,8 +49,8 @@ namespace asp.net.Data
             modelBuilder.Entity<Order>(entity =>
             {
                 entity.HasOne(e => e.AddressBook).WithMany(e => e.Order).HasForeignKey(e => e.AddressId);
-                entity.HasOne(e => e.Customer).WithMany(e => e.Order).HasForeignKey(e => e.CustomerId);
-                entity.HasOne(e => e.Employee).WithMany(e => e.Order).HasForeignKey(e => e.EmployeeId);
+                entity.HasOne(e => e.Customer).WithMany(e => e.Orders).HasForeignKey(e => e.CustomerId);
+                entity.HasOne(e => e.Employee).WithMany(e => e.Orders).HasForeignKey(e => e.EmployeeId);
             });
             modelBuilder.Entity<OrderHistories>(entity =>
             {
