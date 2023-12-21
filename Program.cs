@@ -1,7 +1,9 @@
 ﻿using asp.net.Data;
+using asp.net.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Configuration;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +15,7 @@ builder.Services.AddDbContext<DbCtx>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
 
 builder.Services.AddAuthentication(options =>
 {
@@ -23,10 +26,10 @@ builder.Services.AddAuthentication(options =>
 {
     o.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = builder.Configuration["AuthSetting:Jwt:Issuer"],
+        ValidAudience = builder.Configuration["AuthSetting:Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey
-        (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+        (Encoding.UTF8.GetBytes(builder.Configuration["AuthSetting:Jwt:Key"])),
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = false,

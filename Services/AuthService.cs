@@ -1,4 +1,6 @@
 ﻿using asp.net.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -6,27 +8,29 @@ using System.Text;
 
 namespace asp.net.Services
 {
-    public class AuthService
+    public class AuthSetting
     {
-        public static string GenerateToken(User user)
-        {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("this is a secret key for this application"));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        public JwtSetting? Jwt { get; internal set; }
+        public CookieSetting? Cookie { get; internal set; }
+    }
 
-            var claims = new[] {
-                        new Claim(JwtRegisteredClaimNames.Sub, "Auth Token"),
-                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
-                        new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
-                    };
+    public class JwtSetting
+    {
+        public string? Key { get; set; }
+        public string? Issuer { get; set; }
+        public string? Audience { get; set; }
+        public double ExpireDays { get; set; }
+        public string? Subject { get; set; }
+    }
 
-            var token = new JwtSecurityToken("theuntidycat",
-                "theuntidycat",
-                claims,
-                expires: DateTime.Now.AddDays(30),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+    public class CookieSetting
+    {
+        public string? Name { get; set; }
+        public string? Path { get; set; }
+        public string? Domain { get; set; }
+        public bool HttpOnly { get; set; }
+        public bool Secure { get; set; }
+        public int MaxAge { get; set; }
+        public SameSiteMode SameSite { get; set; }
     }
 }

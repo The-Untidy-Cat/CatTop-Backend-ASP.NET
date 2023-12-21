@@ -9,27 +9,54 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using static Org.BouncyCastle.Math.EC.ECCurve;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Options;
 
 namespace asp.net.Controllers.Auth
 {
     public class LoginForm
     {
         [Required]
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
         [Required]
-        public string Password { get; set; }
+        public string? Password { get; set; }
     }
+
+    public class JWT
+    {
+        public static string GenerateToken(User user, AuthSetting _authSetting)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authSetting?.Jwt?.Key));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[] {
+                        new Claim(JwtRegisteredClaimNames.Sub, _authSetting.Jwt.Subject),
+                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                        new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
+                        new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                    };
+
+            var token = new JwtSecurityToken(_authSetting.Jwt.Issuer,
+                _authSetting.Jwt.Audience,
+                claims,
+                expires: DateTime.Now.AddDays(_authSetting.Jwt.ExpireDays),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    }
+
     [Route("v1/auth")]
     [ApiController]
-    public class AuthController : ControllerBase
 
+    public class AuthController : ControllerBase
     {
         private readonly DbCtx _context;
-        public AuthController(DbCtx context)
+        private readonly AuthSetting _authSetting;
+
+        public AuthController(DbCtx context, IOptions<AuthSetting> options)
         {
+            _authSetting = options.Value;
             _context = context;
         }
 
@@ -62,7 +89,15 @@ namespace asp.net.Controllers.Auth
                     code = 400,
                     message = "Tài khoản/mật khẩu không đúng"
                 });
-            var token = AuthService.GenerateToken(user);
+            var token = JWT.GenerateToken(user, _authSetting);
+            //HttpResponse response = HttpContext.Response;
+            //response.Cookies.Append("token", token, new CookieOptions
+            //{
+            //    HttpOnly = _authSetting.Cookie.HttpOnly,
+            //    SameSite = _authSetting.Cookie.SameSite,
+            //    Expires = DateTime.Now.AddDays(_authSetting.Cookie.MaxAge),
+            //    Secure = _authSetting.Cookie.Secure
+            //}); 
             return Ok(new
             {
                 code = 200,
@@ -78,8 +113,7 @@ namespace asp.net.Controllers.Auth
                         date_of_birth = customer.DateOfBirth,
                         username = user.Username
                     },
-                    cart = new ArrayList(),
-                    token
+                    cart = _authSetting.Jwt.Subject
                 }
             });
         }
