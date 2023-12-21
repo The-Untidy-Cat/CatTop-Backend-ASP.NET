@@ -12,8 +12,11 @@ namespace asp.net.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderHistories> OrderHistories { get; set; }
         public DbSet<OrderItems> OrderItems { get; set; }
-        public DbSet<ProductVariant> ProductVariants { get; set; }
+        public DbSet<ProductVariants> ProductVariants { get; set; }
         public DbSet<AddressBook> AddressBooks { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
             Database.EnsureCreated();
@@ -63,6 +66,18 @@ namespace asp.net.Data
             {
                 entity.HasOne(e => e.Order).WithMany(e => e.OrderItems).HasForeignKey(e => e.OrderId);
                 entity.HasOne(e => e.ProductVariant).WithMany(e => e.OrderItems).HasForeignKey(e => e.VariantId);
+            });
+            modelBuilder.Entity<Brand>(entity =>
+            {
+                entity.HasIndex(e => e.Id).IsUnique();
+            });
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasIndex(e => e.Id).IsUnique();
+            });
+            modelBuilder.Entity<ProductVariants>(entity =>
+            {
+                entity.HasOne(e => e.Product).WithMany(e => e.ProductVariants).HasForeignKey(e => e.ProductID);
             });
         }
     }

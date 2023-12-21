@@ -71,6 +71,6 @@ namespace asp.net.Models
         public DateTime? UpdatedAt { get; set; }
 
         public Order Order { get; set; }
-        public ProductVariant ProductVariant { get; set; }
+        public ProductVariants ProductVariant { get; set; }
     }
 }
