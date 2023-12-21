@@ -29,12 +29,10 @@ namespace asp.net.Models
 
         [Required]
         [Column("order_id")]
-        [ForeignKey("Order")]
         public int OrderId { get; set; }
 
         [Required]
         [Column("variant_id")]
-        [ForeignKey("ProductVariant")]
         public int VariantId { get; set; }
 
         [Required]
@@ -43,15 +41,15 @@ namespace asp.net.Models
 
         [Required]
         [Column("standard_price")]
-        public double StandardPrice { get; set; }
+        public long StandardPrice { get; set; }
 
         [Required]
         [Column("sale_price")]
-        public double SalePrice { get; set; }
+        public long SalePrice { get; set; }
 
         [Required]
         [Column("total")]
-        public double Total { get; set; }
+        public long Total { get; set; }
 
         [Required]
         [Column("is_refunded")]
@@ -59,13 +57,13 @@ namespace asp.net.Models
 
         [Column("rating")]
         [EnumDataType(typeof(Rating))]
-        public string Rating { get; set; }
+        public string? Rating { get; set; }
 
         [Column("review")]
-        public string Review { get; set; }
+        public string? Review { get; set; }
 
         [Column("serial_number")]
-        public string SerialNumber { get; set; }
+        public string? SerialNumber { get; set; }
 
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }

@@ -45,10 +45,13 @@ namespace asp.net.Data
             modelBuilder.Entity<Employee>(entity =>
             {
                 entity.HasOne(e => e.User).WithOne(e => e.Employee);
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.HasIndex(e => e.PhoneNumber).IsUnique();
+                entity.HasIndex(e => e.UserId).IsUnique();
             });
             modelBuilder.Entity<Order>(entity =>
             {
-                entity.HasOne(e => e.AddressBook).WithMany(e => e.Order).HasForeignKey(e => e.AddressId);
+                entity.HasOne(e => e.AddressBook).WithMany(e => e.Orders).HasForeignKey(e => e.AddressId);
                 entity.HasOne(e => e.Customer).WithMany(e => e.Orders).HasForeignKey(e => e.CustomerId);
                 entity.HasOne(e => e.Employee).WithMany(e => e.Orders).HasForeignKey(e => e.EmployeeId);
             });

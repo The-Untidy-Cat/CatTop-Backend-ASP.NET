@@ -28,19 +28,27 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var orders = _context.Orders.Select(o => new
-            {
-                id = o.Id,
-                customer_id = o.CustomerId,
-                //employee_id = o.EmployeeId,
-            });
+            var orders = _context.Orders;
+            //    .Select(o => new
+            //{
+            //    id = o.Id,
+            //    //customer_id = o.CustomerId,
+            //    customer = o.Customer,
+            //    employee = o.Employee,
+            //    //employee_id = o.EmployeeId,
+            //    //address_id = o.AddressId,
+            //    //address = o.AddressBook,
+            //    //order_date = o.OrderDate,
+             
+
+            //});
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
                 {
-                    case "customer_id":
-                        orders = orders.Where(o => o.customer_id.ToString().Contains(request.keyword));
-                        break;
+                    //case "customer_id":
+                    //    orders = orders.Where(o => o.customer_id.ToString().Contains(request.keyword));
+                    //    break;
                     //        case "employee_id":
                     //            orders = orders.Where(o => o.employee_id.ToString().Contains(request.keyword));
                     //            break;

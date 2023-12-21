@@ -61,9 +61,11 @@ namespace asp.net.Models
         [Required]
         [Column("customer_id")]
         public int CustomerId { get; set; }
+        public Customer Customer { get; set; }
 
         [Column("employee_id")]
-        public int EmployeeId { get; set; }
+        public int? EmployeeId { get; set; }
+        public Employee? Employee { get; set; }
 
         [Required]
         [Column("state")]
@@ -86,18 +88,15 @@ namespace asp.net.Models
         public string PaymentState { get; set; }
 
         [Column("note")]
-        public string Note { get; set; }
+        public string? Note { get; set; }
 
         [Column("tracking_no")]
-        public string TrackingNo { get; set; }
+        public string? TrackingNo { get; set; }
 
-        [Required]
         [Column("address_id")]
-        [ForeignKey("AddressBook")]
-        public int AddressId { get; set; }
+        public int? AddressId { get; set; }
 
-        [Column("total_price")]
-        public virtual decimal TotalPrice { get; set; }
+        //public virtual decimal TotalPrice { get; set; }
 
         [Required]
         [Column("created_at")]
@@ -105,12 +104,10 @@ namespace asp.net.Models
 
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
-
-        public  Customer Customer { get; set; }
-        public Employee Employee { get; set; }
-        public AddressBook AddressBook { get; set; }
+        
+        public AddressBook? AddressBook { get; set; }
         public virtual ICollection<OrderHistories> OrderHistories { get; set; }
-        public virtual ICollection<OrderItems> OrderItems { get; set; }
+        public virtual ICollection<OrderItems>? OrderItems { get; set; }
     }
 }
 

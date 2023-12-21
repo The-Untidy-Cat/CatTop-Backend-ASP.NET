@@ -11,6 +11,6 @@ namespace asp.net.Models
         [Key]
         public int Id { get; set; }
 
-        public virtual ICollection<Order> Order { get; set; }
+        public virtual ICollection<Order> Orders { get; set; }
     }
 }
