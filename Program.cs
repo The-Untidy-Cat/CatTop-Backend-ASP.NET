@@ -10,12 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.Configure<AuthSetting>(
+    builder.Configuration.GetSection("AuthSetting"));
+
 builder.Services.AddDbContext<DbCtx>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
+
 
 builder.Services.AddAuthentication(options =>
 {

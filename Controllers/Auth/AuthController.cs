@@ -54,10 +54,10 @@ namespace asp.net.Controllers.Auth
         private readonly DbCtx _context;
         private readonly AuthSetting _authSetting;
 
-        public AuthController(DbCtx context, IOptions<AuthSetting> options)
+        public AuthController(IOptions<AuthSetting> options, DbCtx context)
         {
-            _authSetting = options.Value;
             _context = context;
+            _authSetting = options.Value;
         }
 
         [HttpPost("customer")]
@@ -90,14 +90,14 @@ namespace asp.net.Controllers.Auth
                     message = "Tài khoản/mật khẩu không đúng"
                 });
             var token = JWT.GenerateToken(user, _authSetting);
-            //HttpResponse response = HttpContext.Response;
-            //response.Cookies.Append("token", token, new CookieOptions
-            //{
-            //    HttpOnly = _authSetting.Cookie.HttpOnly,
-            //    SameSite = _authSetting.Cookie.SameSite,
-            //    Expires = DateTime.Now.AddDays(_authSetting.Cookie.MaxAge),
-            //    Secure = _authSetting.Cookie.Secure
-            //}); 
+            HttpResponse response = HttpContext.Response;
+            response.Cookies.Append("token", token, new CookieOptions
+            {
+                HttpOnly = _authSetting.Cookie.HttpOnly,
+                SameSite = _authSetting.Cookie.SameSite,
+                Expires = DateTime.Now.AddDays(_authSetting.Cookie.MaxAge),
+                Secure = _authSetting.Cookie.Secure
+            });
             return Ok(new
             {
                 code = 200,
@@ -113,7 +113,7 @@ namespace asp.net.Controllers.Auth
                         date_of_birth = customer.DateOfBirth,
                         username = user.Username
                     },
-                    cart = _authSetting.Jwt.Subject
+                    cart = new List<Array>()
                 }
             });
         }
