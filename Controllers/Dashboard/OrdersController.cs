@@ -70,27 +70,20 @@ namespace asp.net.Controllers.Dashboard
                 });
             
 
-            var orderitems = _context.OrderItems
-                .Select(o => new
-                {
-                    id = o.Id,
-                    order = o.Order,
-                    variant = o.ProductVariant,
-                    amount = o.Amount,
-                    standard_price = o.StandardPrice,
-                    total = o.Total,
-                    order_id = o.OrderId,
-                });
+         
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
                 {
-                    //case "customer_id":
-                    //    orders = orders.Where(o => o.customer_id.ToString().Contains(request.keyword));
-                    //    break;
-                    //        case "employee_id":
-                    //            orders = orders.Where(o => o.employee_id.ToString().Contains(request.keyword));
-                    //            break;
+                    case "customer_firstname":
+                        orders = orders.Where(o => o.customer.first_name.ToString().Contains(request.keyword));
+                        break;
+                    case "employee_firstname":
+                        orders = orders.Where(o => o.employee.first_name.ToString().Contains(request.keyword));
+                        break;
+                    case "product_name":
+                        orders = orders.Where(o => o.itemVariantProduct.name.ToString().Contains(request.keyword));
+                        break;
                     default:
                         break;
                 }
