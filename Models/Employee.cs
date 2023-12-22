@@ -31,10 +31,39 @@ namespace asp.net.Models
         [StringLength(255)]
         public string LastName { get; set; }
 
+        [Required]
+        [Column("email")]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        [Column("phone_number")]
+        [Phone]
+        public string PhoneNumber { get; set; }
+
+        [Column("date_of_birth")]
+        public DateTime? DateOfBirth { get; set; }
+
+        [Column("gender")]
+        public int? gender { get; set; }
+
+        [Column("state")]
+        [EnumDataType(typeof(CustomerState))]
+        public string State { get; set; }
+
         [Column("user_id")]
         [ForeignKey("User")]
         public int UserId { get; set; }
 
         public User User { get; set; }
+
+        [Column("created_at")]
+        [Display(Name = "created_at")]
+        public DateTime? CreatedAt { get; set; }
+
+        [Column("updated_at")]
+        [Display(Name = "updated_at")]
+        public DateTime? UpdatedAt { get; set; }
+        public  ICollection<Order>? Orders { get; set; }
     }
 }

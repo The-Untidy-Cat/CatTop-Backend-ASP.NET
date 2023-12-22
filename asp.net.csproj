@@ -31,7 +31,10 @@
 
   <ItemGroup>
     <Folder Include="Controllers\Customer\" />
+    <Folder Include="Data\" />
+    <Folder Include="Models\" />
     <Folder Include="Utils\" />
+    <Folder Include="wwwroot\images\" />
   </ItemGroup>
 
 </Project>
