@@ -45,10 +45,9 @@ namespace asp.net.Models
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
 
-        public virtual ICollection<UserRole> UserRoles { get; set; }
+        public ICollection<UserRole> UserRoles { get; set; }
 
-        public virtual Customer Customer { get; set; }
-
-        public virtual Employee Employee { get; set; }
+        public Customer Customer { get; set; }
+        public Employee Employee { get; set; }
     }
 }

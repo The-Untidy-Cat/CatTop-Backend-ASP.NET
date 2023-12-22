@@ -18,12 +18,11 @@ namespace asp.net.Models
     public class UserRole
     {
         [Column("user_id")]
-        [ForeignKey("User")]
         public int UserId { get; set; }
 
         [Column("role_id")]
         [EnumDataType(typeof(UserRoleEnum))]
-        public int RoleId { get; set; }
+        public string RoleId { get; set; }
 
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }

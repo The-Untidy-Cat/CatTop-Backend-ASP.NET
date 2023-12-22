@@ -1,22 +1,45 @@
-using asp.net.Data;
+﻿using asp.net.Data;
+using asp.net.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Configuration;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// Add services to the container.
+
+builder.Services.Configure<AuthSetting>(
+    builder.Configuration.GetSection("AuthSetting"));
+
 builder.Services.AddDbContext<DbCtx>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-//builder.Services.AddSwaggerGen(c => {
-//    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
-//    c.IgnoreObsoleteActions();
-//    c.IgnoreObsoleteProperties();
-//    c.CustomSchemaIds(type => type.FullName);
-//});
+
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(o =>
+{
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidIssuer = builder.Configuration["AuthSetting:Jwt:Issuer"],
+        ValidAudience = builder.Configuration["AuthSetting:Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey
+        (Encoding.UTF8.GetBytes(builder.Configuration["AuthSetting:Jwt:Key"])),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = false,
+        ValidateIssuerSigningKey = true
+    };
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -27,6 +50,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 
