@@ -20,7 +20,7 @@ namespace asp.net.Models
         [Required]
         [Column("variant_id")]
         [ForeignKey("Variant")]
-        public int VariantId { get; set; }
+        public long VariantId { get; set; }
         public ProductVariants Variant { get; set; }
 
         [Required]

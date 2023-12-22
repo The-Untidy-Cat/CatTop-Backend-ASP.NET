@@ -88,5 +88,7 @@ namespace asp.net.Models
         //public Product Product { get; set; }
 
         public Cart Cart { get; set; }
+        public Product Product { get; set; }
+        public ICollection<OrderItems> OrderItems { get; set; }
     }
 }

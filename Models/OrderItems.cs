@@ -33,7 +33,7 @@ namespace asp.net.Models
 
         [Required]
         [Column("variant_id")]
-        public int VariantId { get; set; }
+        public long VariantId { get; set; }
 
         [Required]
         [Column("amount")]

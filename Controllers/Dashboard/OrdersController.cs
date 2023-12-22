@@ -35,10 +35,8 @@ namespace asp.net.Controllers.Dashboard
                      //customer_id = o.CustomerId,
                      customer = o.Customer,
                      employee = o.Employee,
-                     //employee_id = o.EmployeeId,
-                     //address_id = o.AddressId,
-                     //address = o.AddressBook,
-                     //order_date = o.OrderDate,
+                     //get customer id, first name, last name, email, phone number
+                     
 
 
                  });

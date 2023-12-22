@@ -21,7 +21,7 @@ namespace asp.net.Models
     {
         [Required]
         [Column("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [Column("name")]
