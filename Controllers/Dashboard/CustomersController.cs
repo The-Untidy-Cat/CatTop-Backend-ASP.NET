@@ -5,8 +5,7 @@ using asp.net.Models;
 
 namespace asp.net.Controllers.Dashboard
 {
-    [Route("v1/dashboard")]
-    [ApiController]
+
 
     public class SearchForm
     {
@@ -15,7 +14,8 @@ namespace asp.net.Controllers.Dashboard
         public string filter { get; set; }
         public string keyword { get; set; }
     }
-
+    [Route("v1/customers")]
+    [ApiController]
     public class CustomersController : ControllerBase
     {
         private readonly DbCtx _context;
@@ -26,7 +26,7 @@ namespace asp.net.Controllers.Dashboard
         }
 
         // GET: api/Customers
-        [HttpGet("/")]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers([FromQuery] SearchForm request)
         {
             if (_context.Customers == null)

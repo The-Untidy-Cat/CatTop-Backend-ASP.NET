@@ -1,4 +1,5 @@
 ﻿using asp.net.Data;
+using asp.net.Middlewares;
 using asp.net.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -10,38 +11,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.Configure<AuthSetting>(
-    builder.Configuration.GetSection("AuthSetting"));
-
-builder.Services.AddDbContext<DbCtx>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
+builder.Services.AddDbContext<DbCtx>(options => options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)), ServiceLifetime.Scoped);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(o =>
-{
-    o.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidIssuer = builder.Configuration["AuthSetting:Jwt:Issuer"],
-        ValidAudience = builder.Configuration["AuthSetting:Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey
-        (Encoding.UTF8.GetBytes(builder.Configuration["AuthSetting:Jwt:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = false,
-        ValidateIssuerSigningKey = true
-    };
-});
-
 var app = builder.Build();
 
+app.UseRouting();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -53,5 +30,29 @@ app.UseAuthorization();
 app.UseAuthentication();
 
 app.MapControllers();
+
+// Bảo vệ tất cả các route bằng middleware UserMiddleware
+app.UseUserMiddleware();
+
+
+// Bảo vệ tất cả các route customer bằng middleware CustomerMiddleware
+//app.Map("/v1/customers", subApp =>
+//{
+//    subApp.UseCustomerMiddleware();
+//    subApp.UseEndpoints(endpoints =>
+//    {
+//        endpoints.MapControllers();
+//    });
+//});
+
+// Bảo vệ tất cả các route dashboard bằng middleware DashboardMiddleware
+//app.Map("/v1/dashboard", subApp =>
+//{
+//    subApp.UseCustomerMiddleware();
+//    subApp.UseEndpoints(endpoints =>
+//    {
+//        endpoints.MapControllers();
+//    });
+//});
 
 app.Run();
