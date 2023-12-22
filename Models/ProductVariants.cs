@@ -20,7 +20,7 @@ namespace asp.net.Models
     {
         [Required]
         [Column("id")]
-        public long Id { get; set; }
+        public int Id { get; set; }
 
         [Required]
         [Column("sku")]
@@ -41,7 +41,7 @@ namespace asp.net.Models
         [Required]
         [Column("product_id")]
         [ForeignKey("Product")]
-        public long ProductID { get; set; }
+        public int ProductID { get; set; }
 
         [Column("standard_price")]
         [Display(Name = "standard_price")]
@@ -85,8 +85,10 @@ namespace asp.net.Models
         [Display(Name = "updated_at")]
         public DateTime Updated_at { get; set; }
 
-        //public Product Product { get; set; }
+        public Product Product { get; set; }
 
         public Cart Cart { get; set; }
+        public virtual ICollection<OrderItems> OrderItems { get; set; }
+
     }
 }
