@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Services;
 using System.ComponentModel.DataAnnotations;
-using System.Collections;
 using asp.net.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -22,45 +21,82 @@ namespace asp.net.Controllers.Auth
         public string? Password { get; set; }
     }
 
+    public class CustomerRegistrationForm
+    {
+        [Required]
+        [RegularExpression(@"[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ]+", ErrorMessage = "Tên không hợp lệ")]
+        public string? FirstName { get; set; }
+
+        [Required]
+        [RegularExpression(@"[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ]*$", ErrorMessage = "Tên không hợp lệ")]
+        public string? LastName { get; set; }
+
+        [Required]
+        [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})$", ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string? PhoneNumber { get; set; }
+
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Required]
+        [RegularExpression(@"^([a-zA-Z0-9]){6,}$")]
+        public string? Username { get; set; }
+
+        [Required]
+        [StringLength(100, MinimumLength = 6)]
+        public string? Password { get; set; }
+    }
+
     public class AuthService
     {
         public static string GenerateToken(User user, AuthSetting _authSetting)
+
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authSetting?.Jwt?.Key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[] {
-                        new Claim(JwtRegisteredClaimNames.Sub, _authSetting.Jwt.Subject),
-                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
-                        new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                    };
-
-            var token = new JwtSecurityToken(_authSetting.Jwt.Issuer,
-                _authSetting.Jwt.Audience,
-                claims,
-                expires: DateTime.Now.AddDays(_authSetting.Jwt.ExpireDays),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var issuer = _authSetting.Jwt.Issuer;
+            var audience = _authSetting.Jwt.Audience;
+            var key = Encoding.ASCII.GetBytes(_authSetting.Jwt.Key);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                new Claim("Id", Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(JwtRegisteredClaimNames.Jti,
+                Guid.NewGuid().ToString())
+             }),
+                Expires = DateTime.UtcNow.AddDays(_authSetting.Jwt.ExpireDays),
+                Issuer = issuer,
+                Audience = audience,
+                SigningCredentials = new SigningCredentials
+                (new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha512Signature)
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var stringToken = tokenHandler.WriteToken(token);
+            return stringToken;
         }
+
         public static string ValidateToken(string token, AuthSetting _authSetting)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_authSetting.Jwt.Key);
+            var key = Encoding.UTF8.GetBytes(_authSetting?.Jwt?.Key);
             tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
                 ValidIssuer = _authSetting.Jwt.Issuer,
-                ValidateAudience = true,
                 ValidAudience = _authSetting.Jwt.Audience,
-                ValidateLifetime = true
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_authSetting.Jwt.Key)),
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = true
             }, out SecurityToken validatedToken);
             var jwtToken = (JwtSecurityToken)validatedToken;
-            return jwtToken.Claims.First(x => x.Type == "unique_name").Value;
+            var user = jwtToken.Claims.FirstOrDefault(x => x.Type == "sub").Value;
+            return user;
         }
+
         public static void AddTokenToCookie(HttpResponse response, string token, AuthSetting _authSetting)
         {
             response.Cookies.Append("token", token, new CookieOptions
@@ -85,6 +121,66 @@ namespace asp.net.Controllers.Auth
         {
             _context = context;
             _authSetting = options.Value;
+        }
+
+        [HttpPost("register")]
+        public async Task<ActionResult> Register([FromBody] CustomerRegistrationForm request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _context.Users.Where(u => u.Username == request.Username).FirstOrDefaultAsync();
+            if (user != null) return BadRequest(new
+            {
+                code = 400,
+                message = "Tài khoản đã tồn tại"
+            });
+            var newUser = new User
+            {
+                Username = request.Username,
+                Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                State = UserState.Active.ToString()
+            };
+            var newRole = new UserRole
+            {
+                User = newUser,
+                RoleId = UserRoleEnum.Customer.ToString()
+            };
+            var newCustomer = new Customer
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                State = CustomerState.Active.ToString(),
+                User = newUser
+            };
+            _context.Users.Add(newUser);
+            _context.Customers.Add(newCustomer);
+            await _context.SaveChangesAsync();
+            user = newCustomer.User;
+            var token = AuthService.GenerateToken(user, _authSetting);
+            HttpResponse response = HttpContext.Response;
+            AuthService.AddTokenToCookie(response, token, _authSetting);
+            return Ok(new
+            {
+                code = 200,
+                data = new
+                {
+                    user = new
+                    {
+                        first_name = newCustomer.FirstName,
+                        last_name = newCustomer.LastName,
+                        phone_number = newCustomer.PhoneNumber,
+                        email = newCustomer.Email,
+                        gender = newCustomer.Gender,
+                        date_of_birth = newCustomer.DateOfBirth,
+                        username = user.Username
+                    },
+                    cart = new List<Array>()
+                }
+            });
         }
 
         [HttpPost("customer")]
@@ -146,40 +242,44 @@ namespace asp.net.Controllers.Auth
             {
                 return BadRequest(ModelState);
             }
-            var user = await _context.Employees.Where(e => e.User.Username == request.Username).Select(e => new
+            var employee = await _context.Employees.Where(e => e.User.Username == request.Username).Select(e => new
             {
                 e.FirstName,
                 e.LastName,
-                e.User.Username,
-                e.User.Password,
-                e.User.UserRoles
+                e.Email,
+                e.PhoneNumber,
+                e.DateOfBirth,
+                e.Gender,
+                e.User
             }).FirstAsync();
 
-            if (user == null) return BadRequest(new
+            if (employee == null) return BadRequest(new
             {
                 code = 400,
                 message = "Không tìm thấy tài khoản"
             });
-
+            var user = employee.User;
             if (user != null && !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
                 return BadRequest(new
                 {
                     code = 400,
                     message = "Tài khoản/mật khẩu không đúng"
                 });
-            //var token = AuthService.GenerateToken(user, _authSetting);
-            //HttpResponse response = HttpContext.Response;
-            //AuthService.AddTokenToCookie(response, token, _authSetting);
+            var token = AuthService.GenerateToken(user, _authSetting);
+            HttpResponse response = HttpContext.Response;
+            AuthService.AddTokenToCookie(response, token, _authSetting);
             return Ok(new
             {
                 code = 200,
                 data = new
                 {
-                    //user = new
-                    //{
-                    //    username = user.Username
-                    //}
-                    user
+                    first_name = employee.FirstName,
+                    last_name = employee.LastName,
+                    phone_number = employee.PhoneNumber,
+                    email = employee.Email,
+                    gender = employee.Gender,
+                    date_of_birth = employee.DateOfBirth,
+                    username = user.Username
                 }
             });
         }

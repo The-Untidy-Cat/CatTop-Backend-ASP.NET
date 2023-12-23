@@ -1,41 +1,38 @@
-﻿using asp.net.Controllers.Auth;
+﻿using asp.net.Data;
 using asp.net.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using NuGet.Protocol;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace asp.net.Middlewares
 {
     // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
-    public class UserMiddleware
+    public class DashboardMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly AuthSetting _authSettings;
 
-        public UserMiddleware(RequestDelegate next, IOptions<AuthSetting> options)
+
+        public DashboardMiddleware(RequestDelegate next, IOptions<AuthSetting> options)
         {
             _next = next;
             _authSettings = options.Value;
         }
 
-        public async Task Invoke(HttpContext httpContext)
+        public async Task Invoke(HttpContext httpContext, DbCtx context)
         {
-            var token = httpContext.Request.Cookies["token"];
-            if (token == null)
-            {
-                await _next(httpContext);
-            }
-            var user = AuthService.ValidateToken(token, _authSettings);
+            var user = httpContext.Items["user"];
             if (user == null)
             {
-                await _next(httpContext);
+                await ReturnErrorResponse(httpContext, HttpStatusCode.Unauthorized);
             }
-            httpContext.Items["user"] = user;
+            var employee = context.Employees.Where(c => c.User.Username == user).FirstOrDefault();
+            if (employee == null)
+            {
+                await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
+            }
             await _next(httpContext);
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)
@@ -51,11 +48,11 @@ namespace asp.net.Middlewares
     }
 
     // Extension method used to add the middleware to the HTTP request pipeline.
-    public static class UserMiddlewareExtensions
+    public static class DashboardMiddlewareExtensions
     {
-        public static IApplicationBuilder UseUserMiddleware(this IApplicationBuilder builder)
+        public static IApplicationBuilder UseDashboardMiddleware(this IApplicationBuilder builder)
         {
-            return builder.UseMiddleware<UserMiddleware>();
+            return builder.UseMiddleware<DashboardMiddleware>();
         }
     }
 }

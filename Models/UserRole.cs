@@ -9,8 +9,8 @@ namespace asp.net.Models
     {
         [EnumMember(Value = "admin")]
         Admin,
-        [EnumMember(Value = "user")]
-        User,
+        [EnumMember(Value = "customer")]
+        Customer,
         [EnumMember(Value = "seller")]
         Seller
     }

@@ -18,16 +18,18 @@ namespace asp.net.Models
     [Table("employees")]
     public class Employee
     {
+        [Required]
         [Column("id")]
+        [Key]
         public int Id { get; set; }
 
+        [Required]
         [Column("first_name")]
-        [Display(Name = "first_name")]
         [StringLength(255)]
         public string FirstName { get; set; }
 
+        [Required]
         [Column("last_name")]
-        [Display(Name = "last_name")]
         [StringLength(255)]
         public string LastName { get; set; }
 
@@ -45,16 +47,15 @@ namespace asp.net.Models
         public DateTime? DateOfBirth { get; set; }
 
         [Column("gender")]
-        public int? gender { get; set; }
+        public int? Gender { get; set; }
 
         [Column("state")]
-        [EnumDataType(typeof(CustomerState))]
+        [EnumDataType(typeof(EmployeeState))]
         public string State { get; set; }
 
         [Column("user_id")]
         [ForeignKey("User")]
         public int UserId { get; set; }
-
         public User User { get; set; }
 
         [Column("created_at")]
@@ -64,6 +65,6 @@ namespace asp.net.Models
         [Column("updated_at")]
         [Display(Name = "updated_at")]
         public DateTime? UpdatedAt { get; set; }
-        public  ICollection<Order>? Orders { get; set; }
+        public ICollection<Order>? Orders { get; set; }
     }
 }

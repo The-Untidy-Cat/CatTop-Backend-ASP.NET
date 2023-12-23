@@ -32,7 +32,7 @@ app.UseAuthentication();
 app.MapControllers();
 
 // Bảo vệ tất cả các route bằng middleware UserMiddleware
-app.UseUserMiddleware();
+//app.UseUserMiddleware();
 
 
 // Bảo vệ tất cả các route customer bằng middleware CustomerMiddleware
