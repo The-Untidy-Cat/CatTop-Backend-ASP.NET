@@ -28,30 +28,62 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
+
             var orders = _context.Orders
                 .Select(o => new
-                 {
-                     id = o.Id,
-                     //customer_id = o.CustomerId,
-                     customer = o.Customer,
-                     employee = o.Employee,
-                     //employee_id = o.EmployeeId,
-                     //address_id = o.AddressId,
-                     //address = o.AddressBook,
-                     //order_date = o.OrderDate,
+                {
+                    id = o.Id,
+                    //customer_id = o.CustomerId,
+                    customer = new
+                    {
+                        customer_id = o.CustomerId,
+                        first_name = o.Customer.FirstName,
+                        last_name = o.Customer.LastName,
+                    },
+                    employee = new
+                    {
+                        employee_id = o.EmployeeId,
+                        first_name = o.Employee.FirstName,
+                        last_name = o.Employee.LastName,
+                    },
+                    items = new
+                    {
+                        id = o.OrderItems.Select(i => i.Id),
+                        variant = o.OrderItems.Select(i => i.VariantId),
+                        amount = o.OrderItems.Select(i => i.Amount),
+                        sale_price = o.OrderItems.Select(i => i.SalePrice),
+                        standard_price = o.OrderItems.Select(i => i.StandardPrice),
+                        total = o.OrderItems.Select(i => i.Total),
+                        order_id = o.OrderItems.Select(i => i.OrderId),
+                    },
+                    itemVariant = new
+                    {
+                        id = o.OrderItems.Select(i => i.ProductVariant.Id),
+                        product_id = o.OrderItems.Select(i => i.ProductVariant.ProductID),
+                        sku = o.OrderItems.Select(i => i.ProductVariant.SKU),
+                    },
+                    itemVariantProduct = new
+                    {
+                        id = o.OrderItems.Select(i => i.ProductVariant.Product.Id),
+                        name = o.OrderItems.Select(i => i.ProductVariant.Product.Name),
+                    }
+                });
+            
 
-
-                 });
+         
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
                 {
-                    //case "customer_id":
-                    //    orders = orders.Where(o => o.customer_id.ToString().Contains(request.keyword));
-                    //    break;
-                    //        case "employee_id":
-                    //            orders = orders.Where(o => o.employee_id.ToString().Contains(request.keyword));
-                    //            break;
+                    case "customer_firstname":
+                        orders = orders.Where(o => o.customer.first_name.ToString().Contains(request.keyword));
+                        break;
+                    case "employee_firstname":
+                        orders = orders.Where(o => o.employee.first_name.ToString().Contains(request.keyword));
+                        break;
+                    case "product_name":
+                        orders = orders.Where(o => o.itemVariantProduct.name.ToString().Contains(request.keyword));
+                        break;
                     default:
                         break;
                 }
