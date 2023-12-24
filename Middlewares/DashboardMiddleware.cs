@@ -3,6 +3,7 @@ using asp.net.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NuGet.Protocol;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -29,6 +30,7 @@ namespace asp.net.Middlewares
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Unauthorized);
             }
             var employee = context.Employees.Where(c => c.User.Username == user).FirstOrDefault();
+            Console.WriteLine(employee.ToJson());
             if (employee == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
@@ -39,11 +41,12 @@ namespace asp.net.Middlewares
         {
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)httpStatusCode;
-            await context.Response.WriteAsJsonAsync(new
+            context.Response.WriteAsJsonAsync(new
             {
                 code = (int)httpStatusCode,
-                message = "Bạn không có quyền truy cập"
+                message = "You are not allowed to access this resource"
             });
+            await context.Response.CompleteAsync();
         }
     }
 

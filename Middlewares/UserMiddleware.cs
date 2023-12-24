@@ -42,11 +42,7 @@ namespace asp.net.Middlewares
         {
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)httpStatusCode;
-            await context.Response.WriteAsJsonAsync(new
-            {
-                code = (int)httpStatusCode,
-                message = "Bạn không có quyền truy cập"
-            });
+            await context.Response.CompleteAsync();
         }
     }
 
