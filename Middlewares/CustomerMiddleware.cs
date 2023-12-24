@@ -1,7 +1,9 @@
 ﻿using asp.net.Data;
 using asp.net.Models;
 using asp.net.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using NuGet.Protocol;
 using System.Net;
 
 namespace asp.net.Middlewares
@@ -26,11 +28,12 @@ namespace asp.net.Middlewares
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Unauthorized);
             }
-            var customer = context.Customers.Where(c => c.User.Username == user).FirstOrDefault();
+            var customer = await context.Customers.Where(c => c.User.Username == user).FirstOrDefaultAsync();
             if (customer == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
             }
+            httpContext.Items["user"] = customer;
             await _next(httpContext);
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)

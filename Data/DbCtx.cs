@@ -16,6 +16,7 @@ namespace asp.net.Data
         public DbSet<AddressBook> AddressBooks { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Brand> Brands { get; set; }
+        public DbSet<Cart> Carts { get; set; }
 
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
@@ -85,12 +86,12 @@ namespace asp.net.Data
             });
             modelBuilder.Entity<AddressBook>(entity =>
             {
-                entity.HasOne(c => c.Customer).WithOne(a => a.AddressBook);
+                entity.HasOne(c => c.Customer).WithOne(a => a.AddressBooks).HasForeignKey<AddressBook>(a => a.CustomerId);
             });
             modelBuilder.Entity<Cart>(entity =>
             {
-                //entity.HasOne(c => c.Customer).WithOne(c => c.Cart);
-                //entity.HasOne(v => v.Variant)
+                entity.HasOne(c => c.Customer).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.CustomerID);
+                entity.HasOne(v => v.Variant).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.VariantId);
             });
         }
     }

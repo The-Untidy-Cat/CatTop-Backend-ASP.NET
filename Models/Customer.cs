@@ -69,7 +69,7 @@ namespace asp.net.Models
 
         public ICollection<Order>? Orders { get; set; }
 
-        public virtual AddressBook AddressBook { get; set; }
+        public virtual AddressBook AddressBooks { get; set; }
         public virtual Cart Cart { get; set; }
 
     }

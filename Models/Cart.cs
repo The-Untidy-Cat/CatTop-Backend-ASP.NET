@@ -13,13 +13,11 @@ namespace asp.net.Models
 
         [Required]
         [Column("customer_id")]
-        [ForeignKey("Customer")]
         public int CustomerID { get; set; }
         public Customer Customer { get; set; }
 
         [Required]
         [Column("variant_id")]
-        [ForeignKey("Variant")]
         public long VariantId { get; set; }
         public ProductVariants Variant { get; set; }
 

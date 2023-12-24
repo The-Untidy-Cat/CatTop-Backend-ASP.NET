@@ -7,10 +7,42 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
-namespace asp.net.Controllers.Customer
+namespace asp.net.Controllers.CustomerController
 {
-    [Route("v1/customers/user")]
+    public class ChangePasswordForm
+    {
+        [Required]
+        public string Password { get; set; }
+    }
+
+    public class UpdateProfileForm
+    {
+        [JsonPropertyName("first_name")]
+        public string FirstName { get; set; }
+
+        [JsonPropertyName("last_name")]
+        public string LastName { get; set; }
+
+        [JsonPropertyName("email")]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [JsonPropertyName("phone_number")]
+        [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})$", ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string PhoneNumber { get; set; }
+
+        [JsonPropertyName("date_of_birth")]
+        public DateTime DateOfBirth { get; set; }
+
+        [JsonPropertyName("gender")]
+        [RegularExpression(@"^(0|1)$", ErrorMessage = "Giới tính không hợp lệ")]
+        public int Gender { get; set; }
+    }
+
+    [Route("v1/customer/user")]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -25,100 +57,145 @@ namespace asp.net.Controllers.Customer
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
-            if (_context.Customers == null)
+            var user = HttpContext.Items["user"];
+            var customer = await _context.Customers.Where(c => c.User.Username == user).Select(c => new
             {
-                return NotFound();
-            }
-            return await _context.Customers.ToListAsync();
-        }
-
-        // GET: api/User/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Customer>> GetCustomer(int id)
-        {
-            if (_context.Customers == null)
+                c.Id,
+                c.FirstName,
+                c.LastName,
+                c.Email,
+                c.PhoneNumber,
+                c.DateOfBirth,
+                c.Gender,
+                c.User.Username
+            }).FirstOrDefaultAsync();
+            var cart = await _context.Carts.Where(c => c.CustomerID == customer.Id).Select(c => new
             {
-                return NotFound();
-            }
-            var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
+                c.Variant.Product,
+                c.Amount
+            }).ToListAsync();
+            var response = new
             {
-                return NotFound();
-            }
-
-            return customer;
-        }
-
-        // PUT: api/User/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCustomer(int id, Customer customer)
-        {
-            if (id != customer.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(customer).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CustomerExists(id))
+                code = 200,
+                message = "Success",
+                data = new
                 {
-                    return NotFound();
+                    user = new
+                    {
+                        id = customer.Id,
+                        first_name = customer.FirstName,
+                        last_name = customer.LastName,
+                        email = customer.Email,
+                        phone_number = customer.PhoneNumber,
+                        customer.Gender,
+                        date_of_birth = customer.DateOfBirth,
+                        username = customer.Username
+                    },
+                    cart
                 }
-                else
+            };
+            return Ok(response);
+        }
+
+        [HttpPost("change-password")]
+        public async Task<ActionResult<IEnumerable<Customer>>> ChangePassword([FromBody] ChangePasswordForm request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
                 {
-                    throw;
+                    code = 400,
+                    message = "Yêu cầu không hợp lệ"
+                };
+                return BadRequest(response);
+            }
+            if (request.Password.Length < 6)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Mật khẩu mới phải có ít nhất 6 kí tự"
+                };
+                return BadRequest(response);
+            }
+            var user = HttpContext.Items["user"];
+            var customer = await _context.Customers.Where(c => c.User.Username == user)
+                .Select(c => new
+                {
+                    c.User,
+                    c.Id
+                }).FirstOrDefaultAsync();
+            customer.User.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Đổi mật khẩu thành công"
+            };
+            return Ok(responseSuccess);
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<IEnumerable<Customer>>> UpdateProfile([FromBody] UpdateProfileForm request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Yêu cầu không hợp lệ",
+                    errors = ModelState.Values.SelectMany(v => v.Errors)
+                };
+                return BadRequest(response);
+            }
+            var user = HttpContext.Items["user"];
+            var customer = await _context.Customers.Where(c => c.User.Username == user)
+                .FirstOrDefaultAsync();
+            customer.UpdatedAt = DateTime.Now;
+            if (request.FirstName != null)
+            {
+                customer.FirstName = request.FirstName;
+            }
+            if (request.LastName != null)
+            {
+                customer.LastName = request.LastName;
+            }
+            if (request.Email != null)
+            {
+                customer.Email = request.Email;
+            }
+            if (request.PhoneNumber != null)
+            {
+                customer.PhoneNumber = request.PhoneNumber;
+            }
+            if (request.DateOfBirth != null)
+            {
+                customer.DateOfBirth = request.DateOfBirth;
+            }
+            if (request.Gender != null)
+            {
+                customer.Gender = request.Gender;
+            }
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật thông tin thành công",
+                data = new
+                {
+                    user = new
+                    {
+                        first_name = customer.FirstName,
+                        last_name = customer.LastName,
+                        email = customer.Email,
+                        gender = customer.Gender,
+                        date_of_birth = customer.DateOfBirth,
+                        phone_number = customer.PhoneNumber,
+                        username = user
+                    }
                 }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/User
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
-        {
-            if (_context.Customers == null)
-            {
-                return Problem("Entity set 'DbCtx.Customers'  is null.");
-            }
-            _context.Customers.Add(customer);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetCustomer", new { id = customer.Id }, customer);
-        }
-
-        // DELETE: api/User/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCustomer(int id)
-        {
-            if (_context.Customers == null)
-            {
-                return NotFound();
-            }
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool CustomerExists(int id)
-        {
-            return (_context.Customers?.Any(e => e.Id == id)).GetValueOrDefault();
+            };
+            return Ok(responseSuccess);
         }
     }
 }
