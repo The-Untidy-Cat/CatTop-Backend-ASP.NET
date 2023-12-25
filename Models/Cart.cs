@@ -25,8 +25,8 @@ namespace asp.net.Models
         [Column("amount")]
         public int Amount { get; set; }
 
-        [Column("create_at")]
-        public DateTime? CreateAt { get; set; }
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }

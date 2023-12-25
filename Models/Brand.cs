@@ -24,21 +24,21 @@ namespace asp.net.Models
         [Required]
         [Column("name")]
         [StringLength(255)]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Required]
         [Column("slug")]
         [StringLength(255)]
-        public string Slug { get; set; }
+        public string? Slug { get; set; }
 
         [Column("description")]
         [StringLength(255)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
         [Column("state")]
         [StringLength(255)]
-        public string State { get; set; }
+        public string? State { get; set; }
 
         [Column("image")]
         [StringLength(255)]
@@ -47,14 +47,16 @@ namespace asp.net.Models
         [Column("parent_id")]
         [ForeignKey("brandPa")]
         public int ParentId { get; set; }
-        public Brand brandPa { get; set; }
-        public Brand brandMain { get; set; }
+        public Brand? brandPa { get; set; }
+        public Brand? brandMain { get; set; }
 
-        [Column("create_at")]
-        public DateTime? CreateAt { get; set; }
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
         public DateTime? UpdateAt { get; set;}
+
+        public ICollection<Product>? Products { get; set; }
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using asp.net.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace asp.net.Data
 {
@@ -75,6 +76,7 @@ namespace asp.net.Data
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasIndex(e => e.Id).IsUnique();
+                entity.HasOne(e => e.Brand).WithMany(e => e.Products).HasForeignKey(e => e.BrandId);
             });
             modelBuilder.Entity<ProductVariants>(entity =>
             {
