@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace asp.net.Controllers.CustomerController
 {
@@ -14,7 +15,7 @@ namespace asp.net.Controllers.CustomerController
         public string Name { get; set; }
 
         [Required]
-        [JsonProperty("address_line")]
+        [JsonPropertyName("address_line")]
         public string AddressLine { get; set; }
 
         [Required]
@@ -35,7 +36,7 @@ namespace asp.net.Controllers.CustomerController
     {
         public string Name { get; set; }
 
-        [JsonProperty("address_line")]
+        [JsonPropertyName("address_line")]
         public string AddressLine { get; set; }
 
         public int Province { get; set; }
@@ -69,7 +70,7 @@ namespace asp.net.Controllers.CustomerController
                 {
                     a.Id,
                     a.Name,
-                    a.AddressLine,
+                    address_line = a.AddressLine,
                     a.Province,
                     a.District,
                     a.Ward,
@@ -153,11 +154,7 @@ namespace asp.net.Controllers.CustomerController
                 var response = new
                 {
                     code = 404,
-                    message = "fail",
-                    data = new
-                    {
-                        errors = new string[] { "Địa chỉ không tồn tại" }
-                    }
+                    message = "Địa chỉ không tồn tại" 
                 };
                 return NotFound(response);
             }
@@ -192,7 +189,15 @@ namespace asp.net.Controllers.CustomerController
                 message = "success",
                 data = new
                 {
-                    address_book = addressBook
+                    address_book = new { 
+                        addressBook.Id,
+                        addressBook.Name,
+                        address_line = addressBook.AddressLine,
+                        addressBook.Province,
+                        addressBook.District,
+                        addressBook.Ward,
+                        addressBook.Phone
+                    }
                 }
             };
             return Ok(responseSuccess);
