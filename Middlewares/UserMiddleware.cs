@@ -26,14 +26,17 @@ namespace asp.net.Middlewares
         public async Task Invoke(HttpContext httpContext)
         {
             var token = httpContext.Request.Cookies["token"];
+            Console.WriteLine(token);
             if (token == null)
             {
                 await _next(httpContext);
+                return;
             }
             var user = AuthService.ValidateToken(token, _authSettings);
             if (user == null)
             {
                 await _next(httpContext);
+                return;
             }
             httpContext.Items["user"] = user;
             await _next(httpContext);

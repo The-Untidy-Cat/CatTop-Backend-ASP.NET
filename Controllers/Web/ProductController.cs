@@ -21,6 +21,8 @@ namespace asp.net.Controllers.Web
         public string? Brand { get; set; }
 
         [FromQuery(Name = "min_price")]
+        [IntegerValidator(MinValue = 0)]
+        [DefaultValue(0)]
         public long? MinPrice { get; set; }
 
         [FromQuery(Name = "max_price")]
@@ -65,11 +67,11 @@ namespace asp.net.Controllers.Web
             }
             if (form.MinPrice != null)
             {
-                query = query.Where(p => p.SalePrice >= form.MinPrice);
+                query = query.Where(p => p.ProductVariants.Any(v => v.SalePrice >= form.MinPrice));
             }
             if (form.MaxPrice != null)
             {
-                query = query.Where(p => p.SalePrice <= form.MaxPrice);
+                query = query.Where(p => p.ProductVariants.Any(v => v.SalePrice <= form.MaxPrice));
             }
             query = query.Distinct();
             int length = query.Count();
