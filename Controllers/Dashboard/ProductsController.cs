@@ -34,10 +34,10 @@ namespace asp.net.Controllers.Dashboard
                     state = prod.State,
                     description = prod.Description,
                     slug = prod.Slug,
-                    created_at = prod.Created_at,
+                    created_at = prod.CreatedAt,
                     brand = new
                     {
-                        id = prod.Brand_id,
+                        id = prod.BrandId,
                         name = prod.Brand.Name
                     },
                     product_variant = new
@@ -48,7 +48,7 @@ namespace asp.net.Controllers.Dashboard
                         tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
                         standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
                     }
-                }) ;
+                });
             //.ToListAsync();
             if (request.filter != null && request.keyword != null)
             {

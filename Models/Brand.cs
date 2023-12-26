@@ -46,7 +46,7 @@ namespace asp.net.Models
 
         [Column("parent_id")]
         [ForeignKey("brandPa")]
-        public int ParentId { get; set; }
+        public int? ParentId { get; set; }
         public Brand? brandPa { get; set; }
         public Brand? brandMain { get; set; }
 
@@ -54,9 +54,8 @@ namespace asp.net.Models
         public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
-        public DateTime? UpdateAt { get; set;}
+        public DateTime? UpdateAt { get; set; }
 
         public ICollection<Product>? Products { get; set; }
-
     }
 }

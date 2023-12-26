@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  aspnet-app:
+    image: aspnet-app-image
+    container_name: aspnet-app-container
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./appsettings.json:/app/appsettings.json
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8001
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - mysql-phpmyadmin
+  db:
+    image: mariadb:10.4.28
+    container_name: mariadb-container
+    ports:
+      - "3307:3306"
+    volumes:    
+    - ./db:/var/lib/mysql
+    environment:
+        MARIADB_ROOT_PASSWORD: root
+        MARIADB_DATABASE: theuntidycat
+        MARIADB_USER: root
+        MARIADB_PASSWORD: 
+    networks:
+          - mysql-phpmyadmin
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8090:80"
+    environment:
+      PMA_HOST:  
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - mysql-phpmyadmin
+
+networks:
+  mysql-phpmyadmin:
+    driver: bridge  
