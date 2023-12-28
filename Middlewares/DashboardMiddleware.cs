@@ -2,6 +2,7 @@
 using asp.net.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NuGet.Protocol;
 using System.Net;
@@ -28,12 +29,14 @@ namespace asp.net.Middlewares
             if (user == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Unauthorized);
+                return;
             }
-            var employee = context.Employees.Where(c => c.User.Username == user).FirstOrDefault();
+            var employee = await context.Employees.Where(c => c.User.Username == user).FirstOrDefaultAsync();
             Console.WriteLine(employee.ToJson());
             if (employee == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
+                return;
             }
             httpContext.Items["user"] = employee;
             await _next(httpContext);
@@ -48,6 +51,7 @@ namespace asp.net.Middlewares
                 message = "You are not allowed to access this resource"
             });
             await context.Response.CompleteAsync();
+            return;
         }
     }
 

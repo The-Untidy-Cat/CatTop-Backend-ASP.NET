@@ -5,7 +5,7 @@ using asp.net.Models;
 
 namespace asp.net.Controllers.Dashboard
 {
-    [Route("/dashboard/products")]
+    [Route("v1/dashboard/products")]
     [ApiController]
 
     public class ProductsController : ControllerBase
@@ -20,31 +20,78 @@ namespace asp.net.Controllers.Dashboard
         // GET: api/Products
         [HttpGet]
 
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] SearchForm request)
         {
-          if (_context.Products == null)
-          {
-              return NotFound();
-          }
-            var products = _context.Products.Select(prod => new
+            if (_context.Products == null)
             {
-                id = prod.Id,
-                name = prod.Name,
-                state = prod.State,
-            });
-            //return Ok(products);
-            return await _context.Products.ToListAsync();
-
+                return NotFound();
+            }
+            var products = _context.Products
+                .Select(prod => new
+                {
+                    id = prod.Id,
+                    name = prod.Name,
+                    state = prod.State,
+                    description = prod.Description,
+                    slug = prod.Slug,
+                    created_at = prod.CreatedAt,
+                    brand = new
+                    {
+                        id = prod.BrandId,
+                        name = prod.Brand.Name
+                    },
+                    product_variant = new
+                    {
+                        id = prod.ProductVariants.Select(v => v.Id),
+                        name = prod.ProductVariants.Select(v => v.Name),
+                        sale_price = prod.ProductVariants.Select(v => v.SalePrice),
+                        tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
+                        standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
+                    }
+                });
+            //.ToListAsync();
+            if (request.filter != null && request.keyword != null)
+            {
+                switch (request.filter)
+                {
+                    case "name":
+                        products = products.Where(prod => prod.name.Contains(request.keyword));
+                        break;
+                    case "state":
+                        products = products.Where(prod => prod.state.Contains(request.keyword));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var length = products.Count();
+            var records =
+                await products
+                .Skip(request.offset)
+                .Take(request.limit)
+                .ToListAsync();
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    records,
+                    request.offset,
+                    request.limit,
+                    length,
+                }
+            };
+            return Ok(response);
         }
 
         // GET: api/Products/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(long id)
+        public async Task<ActionResult<Product>> GetProduct(int id)
         {
-          if (_context.Products == null)
-          {
-              return NotFound();
-          }
+            if (_context.Products == null)
+            {
+                return NotFound();
+            }
             var product = await _context.Products.FindAsync(id);
 
             if (product == null)
@@ -91,10 +138,10 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(Product product)
         {
-          if (_context.Products == null)
-          {
-              return Problem("Entity set 'DbCtx.Products'  is null.");
-          }
+            if (_context.Products == null)
+            {
+                return Problem("Entity set 'DbCtx.Products'  is null.");
+            }
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
