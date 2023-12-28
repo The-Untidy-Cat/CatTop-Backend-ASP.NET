@@ -13,7 +13,25 @@ using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
-  
+    public class NewOrderItemForm
+    {
+        [Required]
+        [JsonPropertyName("variant_id")]
+        public int VariantId { get; set; }
+
+        [Required]
+        [JsonPropertyName("amount")]
+        public int Quantity { get; set; }
+    }
+
+    public class UpdateOrderItemForm
+    {
+        [JsonPropertyName("quantity")]
+        public int Quantity { get; set; }
+
+        [JsonPropertyName("serial_number")]
+        public string SerialNumber { get; set; }
+    }
     public class NewDashOrderForm
     {
         [Required]
@@ -73,7 +91,7 @@ namespace asp.net.Controllers.Dashboard
                         employee_id = o.EmployeeId,
                         first_name = o.Employee.FirstName,
                         last_name = o.Employee.LastName,
-                    },
+                    } ?? null,
                     items = o.OrderItems.Where(OrderItems => OrderItems.OrderId == o.Id).Select(i => new
                     {
                         order_id = i.OrderId,
@@ -276,10 +294,7 @@ namespace asp.net.Controllers.Dashboard
             var response = new
             {
                 code = 200,
-                data = new
-                {
-                    order
-                }
+                data = order
             };    
 
             return Ok(response);
@@ -337,7 +352,7 @@ namespace asp.net.Controllers.Dashboard
             var order = new Order
             {
                 CustomerId = customer.Id,
-                EmployeeId = employee?.Id,
+                EmployeeId = employee?.Id ?? null,
                 PaymentMethod = request.PaymentMethod,
                 ShoppingMethod = ShoppingMethod.Online.ToString(),
                 PaymentState = PaymentState.Unpaid.ToString(),
@@ -398,7 +413,67 @@ namespace asp.net.Controllers.Dashboard
             return Ok(responseSuccess);
         }
 
-       
+        [HttpPost("{id}/items")]
+        public async Task<ActionResult<IEnumerable<OrderItems>>> CreateOrderItems([FromBody] NewOrderItemForm request, int id)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Fail in CreateOrderItems",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                };
+                return BadRequest(response);
+            }
+
+            var variant = await _context.ProductVariants.Where(ProductVariants => ProductVariants.Id == request.VariantId).FirstOrDefaultAsync();
+            var order = await _context.Orders.Where(Orders => Orders.Id == id).FirstOrDefaultAsync();
+
+            if(order == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                };
+                return BadRequest(response);
+            }
+
+            var orderItems = new OrderItems
+            {
+                OrderId = id,
+                VariantId = variant.Id,
+                Amount = request.Quantity,
+                StandardPrice = variant.StandardPrice,
+                Total = variant.StandardPrice * request.Quantity,
+                IsRefunded = false,
+                Rating = null,
+                SerialNumber = null,
+                Review = null,
+                CreatedAt = DateTime.Now,
+            };
+            await _context.OrderItems.AddAsync(orderItems);
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Success in CreateOrderItems",
+                data = new
+                {
+                    orderItems = new
+                    {
+                        order.Id,
+                        orderItems.VariantId,
+                        orderItems.Amount,
+
+                    }
+                }
+            };
+
+            return Ok();
+        }
+
 
         private bool OrderExists(int id)
         {
