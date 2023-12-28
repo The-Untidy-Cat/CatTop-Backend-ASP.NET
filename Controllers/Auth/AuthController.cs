@@ -273,13 +273,16 @@ namespace asp.net.Controllers.Auth
                 code = 200,
                 data = new
                 {
-                    first_name = employee.FirstName,
-                    last_name = employee.LastName,
-                    phone_number = employee.PhoneNumber,
-                    email = employee.Email,
-                    gender = employee.Gender,
-                    date_of_birth = employee.DateOfBirth,
-                    username = user.Username
+                    user = new
+                    {
+                        first_name = employee.FirstName,
+                        last_name = employee.LastName,
+                        phone_number = employee.PhoneNumber,
+                        email = employee.Email,
+                        gender = employee.Gender,
+                        date_of_birth = employee.DateOfBirth,
+                        username = user.Username
+                    }
                 }
             });
         }

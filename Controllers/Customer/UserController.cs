@@ -15,6 +15,7 @@ namespace asp.net.Controllers.CustomerController
     public class ChangePasswordForm
     {
         [Required]
+        [JsonPropertyName("new_password")]
         public string Password { get; set; }
     }
 
@@ -27,8 +28,8 @@ namespace asp.net.Controllers.CustomerController
         public string LastName { get; set; }
 
         [JsonPropertyName("email")]
-        [EmailAddress]
-        public string Email { get; set; }
+        [RegularExpression(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$", ErrorMessage = "Email không hợp lệ")]
+        public string? Email { get; set; }
 
         [JsonPropertyName("phone_number")]
         [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})$", ErrorMessage = "Số điện thoại không hợp lệ")]

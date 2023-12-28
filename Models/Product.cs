@@ -57,7 +57,6 @@ namespace asp.net.Models
         public Brand? Brand { get; set; }
         public ICollection<ProductVariants>? ProductVariants { get; set; }
 
-        [NotMapped]
         public long StandardPrice
         {
             get
@@ -67,7 +66,6 @@ namespace asp.net.Models
             }
         }
 
-        [NotMapped]
         public long SalePrice
         {
             get

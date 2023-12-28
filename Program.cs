@@ -1,21 +1,25 @@
 ﻿using asp.net.Data;
 using asp.net.Middlewares;
 using asp.net.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
-using Pomelo.EntityFrameworkCore.MySql.Internal;
-using System.Configuration;
-using System.Text;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var allowOrigins = builder.Configuration.GetSection("CorsSetting:AllowOrigins").Get<string[]>();
 
 builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+            builder => builder
+                .WithOrigins(allowOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+            );
+});
+
 builder.Services.AddDbContext<DbCtx>(options => options
     .UseMySql(connectionString,
     ServerVersion.AutoDetect(connectionString)
@@ -23,9 +27,13 @@ builder.Services.AddDbContext<DbCtx>(options => options
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 var app = builder.Build();
 
 app.UseRouting();
+app.UseCors("CorsPolicy");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

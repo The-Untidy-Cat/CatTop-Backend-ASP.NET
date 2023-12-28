@@ -87,7 +87,8 @@ namespace asp.net.Controllers.CustomerController
                                 oi.ProductVariant.Product.Image,
                             }
                         }
-                    }).ToList()
+                    }).ToList(),
+                    total = o.OrderItems.Where(oi => oi.OrderId == o.Id).Sum(oi => oi.Total)
                 })
                 .ToListAsync();
             var response = new
@@ -112,6 +113,8 @@ namespace asp.net.Controllers.CustomerController
                     o.Id,
                     created_at = o.CreatedAt,
                     o.State,
+                    payment_method = o.PaymentMethod,
+                    payment_state = o.PaymentState,
                     items = o.OrderItems.Select(oi => new
                     {
                         oi.Id,
@@ -147,7 +150,8 @@ namespace asp.net.Controllers.CustomerController
                         o.AddressBook.Province,
                         o.AddressBook.District,
                         o.AddressBook.Ward
-                    }
+                    },
+                    total = o.OrderItems.Where(oi => oi.OrderId == o.Id).Sum(oi => oi.Total)
                 }).FirstOrDefault();
             if (order == null)
             {
@@ -307,7 +311,7 @@ namespace asp.net.Controllers.CustomerController
         }
 
         [HttpPost("{orderId}/items/{itemId}/rate")]
-        public async Task<ActionResult<IEnumerable<Order>>> RateItems (int orderId, int itemId, [FromBody] RatingForm request)
+        public async Task<ActionResult<IEnumerable<Order>>> RateItems(int orderId, int itemId, [FromBody] RatingForm request)
         {
             if (!ModelState.IsValid)
             {
