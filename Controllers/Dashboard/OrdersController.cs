@@ -8,10 +8,38 @@ using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
+  
+    public class NewOrderForm
+    {
+        [Required]
+        [JsonPropertyName("customer_id")]
+        public int CustomerId { get; set; }
+
+        [Required]
+        [JsonPropertyName("payment_method")]
+        public string PaymentMethod { get; set; }
+
+        public List<NewOrderItem>? Items { get; set; }
+    }
+
+    public class NewOrderItem
+    {
+        [Required]
+        [JsonPropertyName("variant_id")]
+        public long VariantId { get; set; }
+
+        [Required]
+        [JsonPropertyName("amount")]
+        public int Amount { get; set; }
+    }
+
     [Route("v1/dashboard/orders")]
+    [ApiController]
 
     public class OrdersController : ControllerBase
     {
@@ -30,15 +58,10 @@ namespace asp.net.Controllers.Dashboard
                 return NotFound();
             }
 
-            //var sold = _context.OrderItems
-            //    .Where(i => i.OrderId == i.Order.Id).Count();
-
-
             var orders = _context.Orders
                 .Select(o => new
                 {
                     id = o.Id,
-                    //customer_id = o.CustomerId,
                     customer = new
                     {
                         customer_id = o.CustomerId,
@@ -296,16 +319,83 @@ namespace asp.net.Controllers.Dashboard
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Order>> PostOrder(Order order)
+        public async Task<ActionResult<Order>> CreateOrder([FromBody] NewOrderForm request)
         {
-            if (_context.Orders == null)
+            if(!ModelState.IsValid)
             {
-                return Problem("Entity set 'DbCtx.Orders'  is null.");
+                var response = new
+                {
+                    code = 400,
+                    message = "fail in PostOrder in dash",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(a => a.ErrorMessage))
+                };
+                return BadRequest(response);
             }
-            _context.Orders.Add(order);
+            var user = HttpContext.Items["user"];
+            var employee = _context.Employees.Where(e => e.User.Username == user).FirstOrDefaultAsync();
+            var customer = _context.Customers.Where(c => c.Id == request.CustomerId).FirstOrDefaultAsync();
+            var order = new Order
+            {
+                CustomerId = customer.Id,
+                EmployeeId = employee.Id,
+                PaymentMethod = request.PaymentMethod,
+                ShoppingMethod = ShoppingMethod.Online.ToString(),
+                PaymentState = PaymentState.Unpaid.ToString(),
+                State = OrderState.Draft.ToString(),
+                CreatedAt = DateTime.Now,
+            };
+            await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetOrder", new { id = order.Id }, order);
+            if(request.Items != null && request.Items.Count > 0)
+            {
+                var items = new List<OrderItems>();
+                foreach (var item in request.Items)
+                {
+                    var variant = await _context.ProductVariants.FindAsync(item.VariantId);
+                    if (variant == null)
+                    {
+                        _context.Orders.Remove(order);
+                        var response = new
+                        {
+                            code = 404,
+                            message = "Sản phẩm không tồn tại"
+                        };
+                        return NotFound(response);
+                    }
+                    var orderItem = new OrderItems
+                    {
+                        OrderId = order.Id,
+                        VariantId = item.VariantId,
+                        Amount = item.Amount,
+                        StandardPrice = variant.StandardPrice,
+                        SalePrice = variant.SalePrice,
+                        Total = variant.SalePrice * item.Amount,
+                        IsRefunded = false,
+                        CreatedAt = DateTime.Now,
+                    };
+                    items.Add(orderItem);
+                }
+                await _context.OrderItems.AddRangeAsync(items);
+            }
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Tạo đơn hàng thành công",
+                data = new
+                {
+                    order = new
+                    {
+                        order.Id,
+                        order.CustomerId,
+                        created_at = order.CreatedAt,
+                        order.State,
+                    }
+                }
+            };
+
+            return Ok();
         }
 
         // DELETE: api/Orders/5
