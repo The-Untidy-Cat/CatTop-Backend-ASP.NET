@@ -114,17 +114,33 @@ namespace asp.net.Controllers.Dashboard
         {
             if (_context.Orders == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    code = 404,
+                    message = "Lỗi Context"
+                });
             }
 
             var order = await _context.Orders.FindAsync(id);
         
             if (order == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                });
             }
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    order
+                }
+            };    
 
-            return order;
+            return Ok(response);
         }
 
         // PUT: api/Orders/5
