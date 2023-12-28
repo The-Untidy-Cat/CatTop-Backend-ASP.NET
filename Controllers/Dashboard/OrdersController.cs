@@ -116,8 +116,9 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var order = await _context.Orders.FindAsync(id);
 
+            var order = await _context.Orders.FindAsync(id);
+        
             if (order == null)
             {
                 return NotFound();
