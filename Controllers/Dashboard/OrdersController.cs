@@ -46,16 +46,37 @@ namespace asp.net.Controllers.Dashboard
                         first_name = o.Employee.FirstName,
                         last_name = o.Employee.LastName,
                     },
-                    items = new
+                    items = o.OrderItems.Where(OrderItems => OrderItems.OrderId == o.Id).Select(i => new
                     {
-                        id = o.OrderItems.Select(i => i.Id),
-                        variant = o.OrderItems.Select(i => i.VariantId),
-                        amount = o.OrderItems.Select(i => i.Amount),
-                        sale_price = o.OrderItems.Select(i => i.SalePrice),
-                        standard_price = o.OrderItems.Select(i => i.StandardPrice),
-                        total = o.OrderItems.Select(i => i.Total),
-                        order_id = o.OrderItems.Select(i => i.OrderId),
-                    },
+                        order_id = i.OrderId,
+                        variant_id = i.VariantId,
+                        amount = i.Amount,
+                        sale_price = i.SalePrice,
+                        variant = new
+                        {
+                            id = i.ProductVariant.Id,
+                            SKU = i.ProductVariant.SKU,
+                            name = i.ProductVariant.Name,
+                            description = i.ProductVariant.Description,
+                            standard_price = i.ProductVariant.StandardPrice,
+                            tax_rate = i.ProductVariant.TaxRate,
+                            discount = i.ProductVariant.Discount,
+                            extra_fee = i.ProductVariant.ExtraFee,
+                            cost_price = i.ProductVariant.CostPrice,
+                            sale_price = i.ProductVariant.SalePrice,
+                            specifications = new 
+                            {
+                                cpu = new
+                                {
+                                    
+
+                                },
+                            }
+                           
+                        }
+
+                    }),
+                    
                     itemVariant = new
                     {
                         id = o.OrderItems.Select(i => i.ProductVariant.Id),

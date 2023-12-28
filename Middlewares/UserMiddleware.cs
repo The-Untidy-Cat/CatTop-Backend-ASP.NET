@@ -40,6 +40,7 @@ namespace asp.net.Middlewares
             }
             httpContext.Items["user"] = user;
             await _next(httpContext);
+            return;
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)
         {
