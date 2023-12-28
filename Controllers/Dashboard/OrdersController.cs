@@ -14,7 +14,7 @@ using System.ComponentModel.DataAnnotations;
 namespace asp.net.Controllers.Dashboard
 {
   
-    public class NewOrderForm
+    public class NewDashOrderForm
     {
         [Required]
         [JsonPropertyName("customer_id")]
@@ -24,10 +24,10 @@ namespace asp.net.Controllers.Dashboard
         [JsonPropertyName("payment_method")]
         public string PaymentMethod { get; set; }
 
-        public List<NewOrderItem>? Items { get; set; }
+        public List<NewDashOrderItem>? Items { get; set; }
     }
 
-    public class NewOrderItem
+    public class NewDashOrderItem
     {
         [Required]
         [JsonPropertyName("variant_id")]
@@ -319,7 +319,7 @@ namespace asp.net.Controllers.Dashboard
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Order>> CreateOrder([FromBody] NewOrderForm request)
+        public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromBody] NewDashOrderForm request)
         {
             if(!ModelState.IsValid)
             {
@@ -332,12 +332,12 @@ namespace asp.net.Controllers.Dashboard
                 return BadRequest(response);
             }
             var user = HttpContext.Items["user"];
-            var employee = _context.Employees.Where(e => e.User.Username == user).FirstOrDefaultAsync();
-            var customer = _context.Customers.Where(c => c.Id == request.CustomerId).FirstOrDefaultAsync();
+            var employee = await _context.Employees.Where(e => e.User.Username == user).FirstOrDefaultAsync();
+            var customer = await _context.Customers.Where(c => c.Id == request.CustomerId).FirstOrDefaultAsync();
             var order = new Order
             {
                 CustomerId = customer.Id,
-                EmployeeId = employee.Id,
+                EmployeeId = employee?.Id,
                 PaymentMethod = request.PaymentMethod,
                 ShoppingMethod = ShoppingMethod.Online.ToString(),
                 PaymentState = PaymentState.Unpaid.ToString(),
@@ -395,28 +395,10 @@ namespace asp.net.Controllers.Dashboard
                 }
             };
 
-            return Ok();
+            return Ok(responseSuccess);
         }
 
-        // DELETE: api/Orders/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrder(int id)
-        {
-            if (_context.Orders == null)
-            {
-                return NotFound();
-            }
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null)
-            {
-                return NotFound();
-            }
-
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
+       
 
         private bool OrderExists(int id)
         {

@@ -151,25 +151,7 @@ namespace asp.net.Controllers.Dashboard
             return CreatedAtAction("GetOrderItems", new { id = orderItems.Id }, orderItems);
         }
 
-        // DELETE: api/OrderItems/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrderItems(int id)
-        {
-            if (_context.OrderItems == null)
-            {
-                return NotFound();
-            }
-            var orderItems = await _context.OrderItems.FindAsync(id);
-            if (orderItems == null)
-            {
-                return NotFound();
-            }
-
-            _context.OrderItems.Remove(orderItems);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
+        
 
         private bool OrderItemsExists(int id)
         {
