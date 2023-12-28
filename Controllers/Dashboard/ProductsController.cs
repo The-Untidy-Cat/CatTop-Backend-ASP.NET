@@ -32,23 +32,26 @@ namespace asp.net.Controllers.Dashboard
                     id = prod.Id,
                     name = prod.Name,
                     state = prod.State,
-                    description = prod.Description,
-                    slug = prod.Slug,
-                    created_at = prod.Created_at,
+                    discount = prod.ProductVariants.Select(v => v.Discount),
+                    sale_price = prod.ProductVariants.Select(v => v.SalePrice),
+                    tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
+                    standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
+                    //product_variant = new
+                    //{
+                    //    //id = prod.ProductVariants.Select(v => v.Id),
+                    //    //name = prod.ProductVariants.Select(v => v.Name),
+                    //    discount = prod.ProductVariants.Select(v => v.Discount),
+                    //    sale_price = prod.ProductVariants.Select(v => v.SalePrice),
+                    //    tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
+                    //    standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
+                    //},
                     brand = new
                     {
                         id = prod.Brand_id,
                         name = prod.Brand.Name
                     },
-                    product_variant = new
-                    {
-                        id = prod.ProductVariants.Select(v => v.Id),
-                        name = prod.ProductVariants.Select(v => v.Name),
-                        sale_price = prod.ProductVariants.Select(v => v.SalePrice),
-                        tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
-                        standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
-                    }
-                }) ;
+
+                }); ;
             //.ToListAsync();
             if (request.filter != null && request.keyword != null)
             {
