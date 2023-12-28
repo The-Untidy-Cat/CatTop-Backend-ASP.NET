@@ -30,7 +30,7 @@ builder.Services.AddDbContext<DbCtx>(options => options
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddTransient<IMailService, MailService>();
 
 var app = builder.Build();
 

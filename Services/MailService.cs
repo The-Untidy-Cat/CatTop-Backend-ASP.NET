@@ -4,12 +4,12 @@ using MailKit.Net.Smtp;
 
 namespace asp.net.Services
 {
-    public class MailData
+    public class HTMLMailData
     {
-        public string EmailToId { get; set; }
-        public string EmailToName { get; set; }
-        public string EmailSubject { get; set; }
-        public string EmailBody { get; set; }
+        public string Email { get; set; }
+        public string Content { get; set; }
+
+        public string Subject { get; set; }
     }
     public class MailService : IMailService
     {
@@ -19,7 +19,7 @@ namespace asp.net.Services
             _mailSettings = mailSettingsOptions.Value;
         }
 
-        public bool SendMail(MailData mailData)
+        public async Task<bool> SendHTMLMailAsync(HTMLMailData htmlMailData)
         {
             try
             {
@@ -27,25 +27,30 @@ namespace asp.net.Services
                 {
                     MailboxAddress emailFrom = new MailboxAddress(_mailSettings.SenderName, _mailSettings.SenderEmail);
                     emailMessage.From.Add(emailFrom);
-                    MailboxAddress emailTo = new MailboxAddress(mailData.EmailToName, mailData.EmailToId);
+
+                    MailboxAddress emailTo = new MailboxAddress(htmlMailData.Email, htmlMailData.Email);
                     emailMessage.To.Add(emailTo);
 
-                    emailMessage.Cc.Add(new MailboxAddress("Cc Receiver", "cc@example.com"));
-                    emailMessage.Bcc.Add(new MailboxAddress("Bcc Receiver", "bcc@example.com"));
+                    emailMessage.Subject = htmlMailData.Subject;
 
-                    emailMessage.Subject = mailData.EmailSubject;
+                    string filePath = Directory.GetCurrentDirectory() + "\\Templates\\index.html";
+
+                    string emailTemplateText = await File.ReadAllTextAsync(filePath);
+
+                    emailTemplateText = emailTemplateText.Replace("{0}", htmlMailData.Content);
 
                     BodyBuilder emailBodyBuilder = new BodyBuilder();
-                    emailBodyBuilder.TextBody = mailData.EmailBody;
+                    emailBodyBuilder.HtmlBody = emailTemplateText;
+                    emailBodyBuilder.TextBody = "Plain Text goes here to avoid marked as spam for some email servers.";
 
                     emailMessage.Body = emailBodyBuilder.ToMessageBody();
-                    //this is the SmtpClient from the Mailkit.Net.Smtp namespace, not the System.Net.Mail one
+
                     using (SmtpClient mailClient = new SmtpClient())
                     {
-                        mailClient.Connect(_mailSettings.Server, _mailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
-                        mailClient.Authenticate(_mailSettings.Username, _mailSettings.Password);
-                        mailClient.Send(emailMessage);
-                        mailClient.Disconnect(true);
+                        await mailClient.ConnectAsync(_mailSettings.Server, _mailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+                        await mailClient.AuthenticateAsync(_mailSettings.Username, _mailSettings.Password);
+                        await mailClient.SendAsync(emailMessage);
+                        await mailClient.DisconnectAsync(true);
                     }
                 }
 
@@ -53,10 +58,11 @@ namespace asp.net.Services
             }
             catch (Exception ex)
             {
-                // Exception Details
+                Console.WriteLine(ex);
                 return false;
             }
         }
+
     }
     public class MailSetting
     {

@@ -18,6 +18,7 @@ namespace asp.net.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<Brand> Brands { get; set; }
         public DbSet<Cart> Carts { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
@@ -95,6 +96,9 @@ namespace asp.net.Data
                 entity.HasOne(c => c.Customer).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.CustomerID);
                 entity.HasOne(v => v.Variant).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.VariantId);
             });
+            //modelBuilder.Entity<PasswordResetToken>(entity =>
+            //{
+            //});
         }
     }
 }
