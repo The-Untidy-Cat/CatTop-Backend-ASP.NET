@@ -27,17 +27,14 @@ namespace asp.net.Middlewares
             if (user == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Unauthorized);
-                return;
             }
             var customer = await context.Customers.Where(c => c.User.Username == user).FirstOrDefaultAsync();
             if (customer == null)
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
-                return;
             }
             httpContext.Items["user"] = customer;
             await _next(httpContext);
-            return;
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)
         {
@@ -49,6 +46,7 @@ namespace asp.net.Middlewares
                 message = "You are not allowed to access this resource"
             });
             await context.Response.CompleteAsync();
+            return;
         }
     }
 
