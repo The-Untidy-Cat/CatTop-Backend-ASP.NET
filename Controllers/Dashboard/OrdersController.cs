@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using Newtonsoft.Json;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -28,6 +29,10 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
+
+            //var sold = _context.OrderItems
+            //    .Where(i => i.OrderId == i.Order.Id).Count();
+
 
             var orders = _context.Orders
                 .Select(o => new
@@ -64,31 +69,72 @@ namespace asp.net.Controllers.Dashboard
                             extra_fee = i.ProductVariant.ExtraFee,
                             cost_price = i.ProductVariant.CostPrice,
                             sale_price = i.ProductVariant.SalePrice,
-                            specifications = new 
+                            specifications = new
                             {
                                 cpu = new
                                 {
-                                    
-
+                                    name = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.Name.ToString(),
+                                    cores = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.Cores.ToString(),
+                                    threads = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.Threads.ToString(),
+                                    base_clock = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.BaseClock.ToString(),
+                                    turbo_clock = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.TurboClock.ToString(),
+                                    cache = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Cpu.Cache.ToString(),
                                 },
+                                ram = new
+                                {
+                                    capacity = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Ram.Capacity.ToString(),
+                                    type = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Ram.Type.ToString(),
+                                    frequency = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Ram.Frequency.ToString(),
+                                },
+                                storage = new
+                                {
+                                    drive = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Storage.Drive.ToString(),
+                                    capacity = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Storage.Capacity.ToString(),
+                                    type = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Storage.Type.ToString(),
+                                },
+                                display = new
+                                {
+                                    size = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Display.Size.ToString(),
+                                    resolution = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Display.Resolution.ToString(),
+                                    technology = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Display.Technology.ToString(),
+                                    touch = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Display.Touch.ToString(),
+                                },
+                                gpu = new
+                                {
+                                    name = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Gpu.Name.ToString(),
+                                    memory = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Gpu.Memory.ToString(),
+                                    type = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Gpu.Type.ToString(),
+                                    frequency = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Gpu.Frequency.ToString(),
+                                },
+                                ports = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Ports,
+                                keyboard = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Keyboard,
+                                touchpad = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Touchpad,
+                                webcam = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Webcam,
+                                battery = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Battery,
+                                weight = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Weight,
+                                os = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Os,
+                                warranty = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Warranty,
+                                color = JsonConvert.DeserializeObject<Specifications>(i.ProductVariant.Specifications).Color,
+                            },
+                            state = i.ProductVariant.State,
+                            created_at = i.ProductVariant.Created_at,
+                            updated_at = i.ProductVariant.Updated_at,
+                            sold = i.Order.OrderItems.Where(i => i.OrderId == i.Id).Count(),
+                            product = new
+                            {
+                                id = i.ProductVariant.Product.Id,
+                                name = i.ProductVariant.Product.Name,
+                                variant_count = i.ProductVariant.Product.ProductVariants.Count(),
+                                discount = i.ProductVariant.Discount,
+                                sale_price = i.ProductVariant.SalePrice,
+                                standard_price = i.ProductVariant.StandardPrice,
                             }
-                           
-                        }
 
+                        }
                     }),
-                    
-                    itemVariant = new
-                    {
-                        id = o.OrderItems.Select(i => i.ProductVariant.Id),
-                        product_id = o.OrderItems.Select(i => i.ProductVariant.ProductID),
-                        sku = o.OrderItems.Select(i => i.ProductVariant.SKU),
-                    },
-                    itemVariantProduct = new
-                    {
-                        id = o.OrderItems.Select(i => i.ProductVariant.Product.Id),
-                        name = o.OrderItems.Select(i => i.ProductVariant.Product.Name),
-                    }
-                });
+
+
+                }); ;
             
 
          
@@ -101,9 +147,6 @@ namespace asp.net.Controllers.Dashboard
                         break;
                     case "employee_firstname":
                         orders = orders.Where(o => o.employee.first_name.ToString().Contains(request.keyword));
-                        break;
-                    case "product_name":
-                        orders = orders.Where(o => o.itemVariantProduct.name.ToString().Contains(request.keyword));
                         break;
                     default:
                         break;
@@ -142,7 +185,62 @@ namespace asp.net.Controllers.Dashboard
                 });
             }
 
-            var order = await _context.Orders.FindAsync(id);
+            var order = _context.Orders
+                .Where(o => o.Id == id)
+                .Select(o => new
+                {
+                    id = o.Id,
+                    shopping_method = o.ShoppingMethod,
+                    payment_method = o.PaymentMethod,
+                    payment_state = o.PaymentState,
+                    state = o.State,
+                    note = o.Note,
+                    created_at = o.CreatedAt,
+                    updated_at = o.UpdatedAt,
+                    total = o.OrderItems.Where(i => i.OrderId == i.Id).Sum(i => i.Total),
+                    customer = new
+                    {
+                        id = o.CustomerId,
+                        first_name = o.Customer.FirstName,
+                        last_name = o.Customer.LastName,
+                        order_count = o.Customer.Orders.Count(),
+                    },
+                    employee = new
+                    {
+                        id = o.EmployeeId,
+                        first_name = o.Employee.FirstName,
+                        last_name = o.Employee.LastName,
+                        order_count = o.Employee.Orders.Count(),
+                    },
+                    items = o.OrderItems.Where(OrderItems => OrderItems.OrderId == o.Id).Select(i => new
+                    {
+                        id = i.Id,
+                        variant_id = i.VariantId,
+                        amount = i.Amount,
+                        sale_price = i.SalePrice,
+                        total = i.Total,
+                        order_id = i.OrderId,
+                        rating = i.Rating,
+                        review = i.Review,
+                        variant = new
+                        {
+                            id = i.ProductVariant.Id,
+                            name = i.ProductVariant.Name,
+                            sku = i.ProductVariant.SKU,
+                            sold = i.ProductVariant.OrderItems.Count(),
+                            product = new
+                            {
+                                id = i.ProductVariant.Product.Id,
+                                name = i.ProductVariant.Product.Name,
+                                variant_count = i.ProductVariant.Product.ProductVariants.Count(),
+                                discount = i.ProductVariant.Discount,
+                                sale_price = i.ProductVariant.SalePrice,
+                                standard_price = i.ProductVariant.StandardPrice,
+                            }
+                        }
+                        
+                    }).ToList(),
+                });
         
             if (order == null)
             {
