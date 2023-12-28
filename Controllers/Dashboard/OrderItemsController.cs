@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using Org.BouncyCastle.Asn1.Ocsp;
+using static NuGet.Packaging.PackagingConstants;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -23,23 +25,66 @@ namespace asp.net.Controllers.Dashboard
 
         // GET: api/OrderItems
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderItems>>> GetOrderItems()
+        public async Task<ActionResult<IEnumerable<OrderItems>>> GetOrderItems([FromQuery] SearchForm request)
         {
             if (_context.OrderItems == null)
             {
                 return NotFound();
             }
-            var orderItems = await _context.OrderItems
+            var orderItems = _context.OrderItems
                 .Select(o => new
                 {
                     id = o.Id,
-                    order = o.Order,
-                    variant = o.ProductVariant,
+                    variant_id = o.VariantId,
                     amount = o.Amount,
-                    standard_price = o.StandardPrice,
-                    total = o.Total,
-                }).ToListAsync();
-            return Ok(orderItems);
+                    sale_price = o.SalePrice,
+                    order_id = o.OrderId,
+
+                    variant = new
+                    {
+                        id = o.ProductVariant.Id,
+                        product_id = o.ProductVariant.ProductID,
+                        sku = o.ProductVariant.SKU,
+                    },
+
+                    variantProduct = new
+                    {
+                        id = o.ProductVariant.Product.Id,
+                        name = o.ProductVariant.Product.Name,
+                    }
+                });
+
+            if (request.filter != null && request.keyword != null)
+            {
+                switch (request.filter)
+                {
+                    case "variant_product_name":
+                        orderItems = orderItems.Where(o => o.variantProduct.name.ToString().Contains(request.keyword));
+                        break;
+                    case "variant_sku":
+                        orderItems = orderItems.Where(o => o.variant.sku.ToString().Contains(request.keyword));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            var length = orderItems.Count();
+            var records =
+            await orderItems
+                .Skip(request.offset).Take(request.limit)
+                .ToListAsync();
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    records,
+                    request.offset,
+                    request.limit,
+                    length,
+                }
+            };
+            return Ok(response);
         }
 
         // GET: api/OrderItems/5

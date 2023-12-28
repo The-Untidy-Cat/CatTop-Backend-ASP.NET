@@ -25,138 +25,92 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var brands = _context.Brands
-                .Select(brand => new
-                {
-                    id = brand.Id,
-                    name = brand.Name,
-                    state = brand.State,
-                    description = brand.Description,
-                    slug = brand.Slug,
-                    image = brand.Image,
-                });
-            //.ToListAsync();
-            if (request.filter != null && request.keyword != null)
+            
+                var query = _context.Brands.Include(p => p.Products)
+                            .Where(q => q.State == BrandState.Active.ToString());
+            var brands = await query
+            .Select(obj => new
             {
-                switch (request.filter)
-                {
-                    case "name":
-                        brands = brands.Where(prod => prod.name.Contains(request.keyword));
-                        break;
-                    case "state":
-                        brands = brands.Where(prod => prod.state.Contains(request.keyword));
-                        break;
-                    default:
-                        break;
-                }
-            }
+                id = obj.Id,
+                name = obj.Name,
+                //image = obj.Image,
+                state = obj.State,
+                product_count = obj.Products
+                            .Where(p => p.BrandId == obj.Id)
+                            .Select(p => p.ProductVariants.Select(v => v.ProductID))
+                            .Count()
+            }).ToListAsync();
+
             var length = brands.Count();
-            var records =
-                await brands
-                .Skip(request.offset)
-                .Take(request.limit)
-                .ToListAsync();
             var response = new
             {
                 code = 200,
                 data = new
                 {
-                    records,
+                    brands,
                     request.offset,
                     request.limit,
                     length,
                 }
             };
             return Ok(response);
+
         }
 
         // GET: api/Brands/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Brand>> GetBrand(int id)
         {
-          if (_context.Brands == null)
-          {
-              return NotFound();
-          }
-            var brand = await _context.Brands.FindAsync(id);
-
-            if (brand == null)
-            {
-                return NotFound();
-            }
-
-            return brand;
-        }
-
-        // PUT: api/Brands/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutBrand(int id, Brand brand)
-        {
-            if (id != brand.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(brand).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BrandExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Brands
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Brand>> PostBrand(Brand brand)
-        {
-          if (_context.Brands == null)
-          {
-              return Problem("Entity set 'DbCtx.Brands'  is null.");
-          }
-            _context.Brands.Add(brand);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetBrand", new { id = brand.Id }, brand);
-        }
-
-        // DELETE: api/Brands/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBrand(int id)
-        {
             if (_context.Brands == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    code = 404,
+                    message = "Lỗi Context"
+                });
             }
-            var brand = await _context.Brands.FindAsync(id);
-            if (brand == null)
+
+            var query = _context.Brands
+                        .Include(b => b.Products)
+                        .Where(b => b.Id == id)
+                        .Where(b => b.State == BrandState.Active.ToString());
+            var brands = await query
+            .Where(b => b.Id == id)
+            .Select(obj => new
             {
-                return NotFound();
+                id,
+                name = obj.Name,
+                slug = obj.Slug == null ? "null" : obj.Slug,
+                description = obj.Description,
+                image = obj.Image,
+                state = obj.State,
+                parent_id = obj.ParentId,
+                created_at = obj.CreatedAt,
+                updated_at = obj.UpdateAt,
+                product_count = obj.Products
+                            .Where(p => p.BrandId == id)
+                            .Select(p => p.ProductVariants.Select(v => v.ProductID))
+                            .Count()
+            }).ToListAsync();
+
+            if (brands == null)
+            {
+                return NotFound(new
+                {
+                    code = 404,
+                    message = "Không tìm thấy thương hiệu"
+                });
             }
+            var response = new
+            {
+                code = 200,
+                data = new
+                {
+                    brands
+                }
+            };
 
-            _context.Brands.Remove(brand);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool BrandExists(int id)
-        {
-            return (_context.Brands?.Any(e => e.Id == id)).GetValueOrDefault();
+            return Ok(response);
         }
     }
 }

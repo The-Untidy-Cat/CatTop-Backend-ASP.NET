@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -20,73 +22,49 @@ namespace asp.net.Controllers.Dashboard
         // GET: api/Products
         [HttpGet]
 
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] SearchForm request)
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             if (_context.Products == null)
             {
                 return NotFound();
             }
-            var products = _context.Products
-                .Select(prod => new
+            {
+                var query = _context.Products.Include(p => p.ProductVariants).Include(p => p.Brand)
+                            .Where(q => q.State == ProductState.Published.ToString())
+                            .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
+                var products = await query
+                .Select(obj => new
                 {
-                    id = prod.Id,
-                    name = prod.Name,
-                    state = prod.State,
-                    discount = prod.ProductVariants.Select(v => v.Discount),
-                    sale_price = prod.ProductVariants.Select(v => v.SalePrice),
-                    tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
-                    standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
-                    //product_variant = new
-                    //{
-                    //    //id = prod.ProductVariants.Select(v => v.Id),
-                    //    //name = prod.ProductVariants.Select(v => v.Name),
-                    //    discount = prod.ProductVariants.Select(v => v.Discount),
-                    //    sale_price = prod.ProductVariants.Select(v => v.SalePrice),
-                    //    tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
-                    //    standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
-                    //},
-                    brand = new
+                    obj.Id,
+                    name = obj.Name,
+                    image = obj.Image,
+                    created_at = obj.CreatedAt,
+                    slug = obj.Slug,
+                    discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
+                    sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
+                    standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
+                    variants = obj.ProductVariants.Select(v => new
                     {
-                        id = prod.Brand_id,
-                        name = prod.Brand.Name
-                    },
-
-                }); ;
-            //.ToListAsync();
-            if (request.filter != null && request.keyword != null)
-            {
-                switch (request.filter)
-                {
-                    case "name":
-                        products = products.Where(prod => prod.name.Contains(request.keyword));
-                        break;
-                    case "state":
-                        products = products.Where(prod => prod.state.Contains(request.keyword));
-                        break;
-                    default:
-                        break;
-                }
-            }
-            var length = products.Count();
-            var records =
-                await products
-                .Skip(request.offset)
-                .Take(request.limit)
+                        id = v.Id,
+                        cpu = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.ToString(),
+                        ram = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.ToString(),
+                        storage = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.ToString(),
+                        display = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.ToString(),
+                        card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString()
+                    }).ToList()
+                })
                 .ToListAsync();
-            var response = new
-            {
-                code = 200,
-                data = new
+                var response = new
                 {
-                    records,
-                    request.offset,
-                    request.limit,
-                    length,
-                }
-            };
-            return Ok(response);
+                    code = 200,
+                    data = new
+                    {
+                        products
+                    }
+                };
+                return Ok(response);
+            }
         }
-
         // GET: api/Products/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
@@ -95,14 +73,52 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
             {
-                return NotFound();
-            }
+                var query = _context.Products.Include(p => p.ProductVariants).Include(p => p.Brand)
+                            .Where(p => p.Id == id)
+                            .Where(q => q.State == ProductState.Published.ToString())
+                            .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
+                var products = await query
+                .Select(obj => new
+                {
+                    obj.Id,
+                    name = obj.Name,
+                    image = obj.Image,
+                    created_at = obj.CreatedAt,
+                    slug = obj.Slug,
+                    discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
+                    sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
+                    standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
+                    variants = obj.ProductVariants.Select(v => new
+                    {
+                        id = v.Id,
+                        cpu = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.ToString(),
+                        ram = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.ToString(),
+                        storage = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.ToString(),
+                        display = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.ToString(),
+                        card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString()
+                    }).ToList()
+                })
+                .ToListAsync();
+                if (products == null)
+                {
+                    return NotFound(new
+                    {
+                        code = 404,
+                        message = "Không tìm thấy đơn hàng"
+                    });
+                }
+                var response = new
+                {
+                    code = 200,
+                    data = new
+                    {
+                        products
+                    }
+                };
 
-            return product;
+                return Ok(response);
+            }
         }
 
         // PUT: api/Products/5

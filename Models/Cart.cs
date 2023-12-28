@@ -13,22 +13,20 @@ namespace asp.net.Models
 
         [Required]
         [Column("customer_id")]
-        [ForeignKey("Customer")]
         public int CustomerID { get; set; }
         public Customer Customer { get; set; }
 
         [Required]
         [Column("variant_id")]
-        [ForeignKey("Variant")]
-        public int VariantId { get; set; }
+        public long VariantId { get; set; }
         public ProductVariants Variant { get; set; }
 
         [Required]
         [Column("amount")]
         public int Amount { get; set; }
 
-        [Column("create_at")]
-        public DateTime? CreateAt { get; set; }
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }

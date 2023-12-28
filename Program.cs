@@ -1,23 +1,38 @@
-using asp.net.Data;
+﻿using asp.net.Data;
+using asp.net.Middlewares;
+using asp.net.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// Add services to the container.
-builder.Services.AddDbContext<DbCtx>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+var allowOrigins = builder.Configuration.GetSection("CorsSetting:AllowOrigins").Get<string[]>();
+
+builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+            builder => builder
+                .WithOrigins(allowOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+            );
+});
+
+builder.Services.AddDbContext<DbCtx>(options => options
+    .UseMySql(connectionString,
+    ServerVersion.AutoDetect(connectionString)
+    ), ServiceLifetime.Scoped);
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-//builder.Services.AddSwaggerGen(c => {
-//    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
-//    c.IgnoreObsoleteActions();
-//    c.IgnoreObsoleteProperties();
-//    c.CustomSchemaIds(type => type.FullName);
-//});
+
+
 var app = builder.Build();
+
+app.UseRouting();
+app.UseCors("CorsPolicy");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -26,8 +41,36 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
+
+// Bảo vệ tất cả các route bằng middleware UserMiddleware
+app.UseUserMiddleware();
+// Bảo vệ tất cả các route customer bằng middleware CustomerMiddleware
+app.Map("/v1/customer", subApp =>
+{
+    subApp.UseCustomerMiddleware();
+    subApp.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    });
+});
+
+// Bảo vệ tất cả các route dashboard bằng middleware DashboardMiddleware
+//app.Map("/v1/dashboard", subApp =>
+//{
+//    subApp.UseDashboardMiddleware();
+//    subApp.UseEndpoints(endpoints =>
+//    {
+//        endpoints.MapControllers();
+//    });
+//});
 
 app.Run();

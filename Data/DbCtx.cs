@@ -1,5 +1,6 @@
 ﻿using asp.net.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace asp.net.Data
 {
@@ -16,6 +17,7 @@ namespace asp.net.Data
         public DbSet<AddressBook> AddressBooks { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Brand> Brands { get; set; }
+        public DbSet<Cart> Carts { get; set; }
 
         public DbCtx(DbContextOptions<DbCtx> options) : base(options)
         {
@@ -30,15 +32,15 @@ namespace asp.net.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasIndex(e => e.Username).IsUnique();
-                entity.HasOne(e => e.Customer).WithOne(e => e.User).HasForeignKey<Customer>(e => e.UserId);
-                entity.HasOne(e => e.Employee).WithOne(e => e.User).HasForeignKey<Employee>(e => e.UserId);
+                entity.HasOne(u => u.Customer).WithOne(c => c.User);
             });
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.PhoneNumber).IsUnique();
                 entity.HasIndex(e => e.UserId).IsUnique();
-                entity.HasOne(e => e.User).WithOne(e => e.Customer);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.HasOne(c => c.User).WithOne(u => u.Customer).HasForeignKey<Customer>(c => c.UserId);
             });
             modelBuilder.Entity<UserRole>(entity =>
             {
@@ -74,6 +76,7 @@ namespace asp.net.Data
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasIndex(e => e.Id).IsUnique();
+                entity.HasOne(e => e.Brand).WithMany(e => e.Products).HasForeignKey(e => e.BrandId);
             });
             modelBuilder.Entity<ProductVariants>(entity =>
             {
@@ -85,12 +88,12 @@ namespace asp.net.Data
             });
             modelBuilder.Entity<AddressBook>(entity =>
             {
-                entity.HasOne(c => c.Customer).WithOne(a => a.AddressBook);
+                entity.HasOne(c => c.Customer).WithOne(a => a.AddressBooks).HasForeignKey<AddressBook>(a => a.CustomerId);
             });
             modelBuilder.Entity<Cart>(entity =>
             {
-                //entity.HasOne(c => c.Customer).WithOne(c => c.Cart);
-                //entity.HasOne(v => v.Variant)
+                entity.HasOne(c => c.Customer).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.CustomerID);
+                entity.HasOne(v => v.Variant).WithOne(c => c.Cart).HasForeignKey<Cart>(c => c.VariantId);
             });
         }
     }

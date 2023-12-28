@@ -21,37 +21,58 @@ namespace asp.net.Models
     {
         [Required]
         [Column("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [Column("name")]
         [StringLength(255)]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Required]
         [Column("state")]
         [EnumDataType(typeof(ProductState))]
         [StringLength(255)]
-        public string State { get; set; }
+        public string? State { get; set; }
+
+        [Column("image")]
+        [Url]
+        public string? Image { get; set; }
 
         [Required]
         [Column("slug")]
-        public string Slug { get; set; }
+        public string? Slug { get; set; }
 
         [Column("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Column("created_at")]
-        public DateTime? Created_at { get; set; }
+        public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
-        public DateTime? Updated_at { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         [Column("brand_id")]
         [ForeignKey("Brand")]
-        public int Brand_id { get; set; }
-        public Brand Brand { get; set; }
-        public virtual ICollection<ProductVariants> ProductVariants { get; set; }
+        public int BrandId { get; set; }
+        public Brand? Brand { get; set; }
+        public ICollection<ProductVariants>? ProductVariants { get; set; }
 
+        public long StandardPrice
+        {
+            get
+            {
+                long price = ProductVariants.Min(v => v.StandardPrice);
+                return price;
+            }
+        }
+
+        public long SalePrice
+        {
+            get
+            {
+                long price = ProductVariants.Min(v => v.SalePrice);
+                return price;
+            }
+        }
     }
 }
