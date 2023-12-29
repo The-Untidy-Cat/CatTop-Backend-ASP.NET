@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
+using System.Configuration;
 
 namespace asp.net.Controllers.Auth
 {
@@ -430,7 +431,7 @@ namespace asp.net.Controllers.Auth
                 message = "Mã OTP không hợp lệ"
             });
             DateTime createdAt = DateTime.Parse(token.CreatedAt.ToString());
-            if (DateTime.Now <= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
+            if (DateTime.Now >= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
             {
                 _context.PasswordResetTokens.Remove(token);
                 await _context.SaveChangesAsync();
@@ -449,6 +450,7 @@ namespace asp.net.Controllers.Auth
                 message = "Không tìm thấy tài khoản"
             });
             user.Password = BCrypt.Net.BCrypt.HashPassword(form.Password);
+            _context.PasswordResetTokens.Remove(token);
             await _context.SaveChangesAsync();
             return Ok(new
             {
@@ -475,7 +477,7 @@ namespace asp.net.Controllers.Auth
                 message = "Mã OTP không hợp lệ"
             });
             DateTime createdAt = DateTime.Parse(token.CreatedAt.ToString());
-            if (DateTime.Now <= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
+            if (DateTime.Now >= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
             {
                 _context.PasswordResetTokens.Remove(token);
                 await _context.SaveChangesAsync();
@@ -485,7 +487,7 @@ namespace asp.net.Controllers.Auth
                     message = "Mã OTP đã hết hạn"
                 });
             }
-            
+
             return Ok(new
             {
                 code = 200,
@@ -499,7 +501,7 @@ namespace asp.net.Controllers.Auth
             var response = new
             {
                 code = 200,
-                request = new
+                data = new
                 {
                     csrf = Guid.NewGuid().ToString(),
                 },
