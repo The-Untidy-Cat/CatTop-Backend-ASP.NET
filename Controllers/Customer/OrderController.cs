@@ -57,6 +57,7 @@ namespace asp.net.Controllers.CustomerController
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
         {
             var user = HttpContext.Items["user"];
+            Console.WriteLine(user);
             var customer = await _context.Customers
                 .Where(c => c.User.Username == user)
                 .Select(c => new { c.Id })
@@ -90,6 +91,7 @@ namespace asp.net.Controllers.CustomerController
                     }).ToList(),
                     total = o.OrderItems.Where(oi => oi.OrderId == o.Id).Sum(oi => oi.Total)
                 })
+                .OrderByDescending(o => o.created_at)
                 .ToListAsync();
             var response = new
             {

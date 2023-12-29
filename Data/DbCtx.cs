@@ -33,7 +33,8 @@ namespace asp.net.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasIndex(e => e.Username).IsUnique();
-                entity.HasOne(u => u.Customer).WithOne(c => c.User);
+                //entity.HasOne(u => u.Customer).WithOne(c => c.User);
+                //entity.HasOne(u => u.Employee).WithOne(e => e.User);
             });
             modelBuilder.Entity<Customer>(entity =>
             {

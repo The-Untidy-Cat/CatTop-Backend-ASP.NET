@@ -36,7 +36,6 @@ namespace asp.net.Middlewares
             {
                 await ReturnErrorResponse(httpContext, HttpStatusCode.Forbidden);
             }
-            httpContext.Items["user"] = employee;
             await _next(httpContext);
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)

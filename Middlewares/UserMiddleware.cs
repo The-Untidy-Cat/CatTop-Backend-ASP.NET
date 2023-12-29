@@ -30,17 +30,14 @@ namespace asp.net.Middlewares
             if (token == null)
             {
                 await _next(httpContext);
-                return;
             }
             var user = AuthService.ValidateToken(token, _authSettings);
             if (user == null)
             {
                 await _next(httpContext);
-                return;
             }
             httpContext.Items["user"] = user;
             await _next(httpContext);
-            return;
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)
         {
