@@ -29,7 +29,7 @@ namespace asp.net.Controllers.Dashboard
                 return NotFound();
             }
             {
-                var query = _context.Products.Include(p => p.ProductVariants).Include(p => p.Brand)
+                var query = _context.Products.Include(p => p.ProductVariants)
                             .Where(q => q.State == ProductState.Published.ToString())
                             .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
                 var products = await query
@@ -37,23 +37,19 @@ namespace asp.net.Controllers.Dashboard
                 {
                     obj.Id,
                     name = obj.Name,
-                    image = obj.Image,
-                    created_at = obj.CreatedAt,
-                    slug = obj.Slug,
+                    state = obj.State,
+                    variant_count = obj.ProductVariants.Count(),
                     discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
                     sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
                     standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
-                    variants = obj.ProductVariants.Select(v => new
+                    brands = new
                     {
-                        id = v.Id,
-                        cpu = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.ToString(),
-                        ram = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.ToString(),
-                        storage = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.ToString(),
-                        display = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.ToString(),
-                        card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString()
-                    }).ToList()
-                })
-                .ToListAsync();
+                        id = obj.Brand.Id,
+                        name = obj.Brand.Name,
+                        product_count = obj.Brand.Products.Count()
+                    }
+                }).ToListAsync();
+
                 var response = new
                 {
                     code = 200,
@@ -74,30 +70,36 @@ namespace asp.net.Controllers.Dashboard
                 return NotFound();
             }
             {
-                var query = _context.Products.Include(p => p.ProductVariants).Include(p => p.Brand)
+                var query = _context.Products.Include(p => p.ProductVariants)
                             .Where(p => p.Id == id)
                             .Where(q => q.State == ProductState.Published.ToString())
                             .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
                 var products = await query
                 .Select(obj => new
                 {
-                    obj.Id,
+                    id = obj.Id,
                     name = obj.Name,
-                    image = obj.Image,
-                    created_at = obj.CreatedAt,
                     slug = obj.Slug,
-                    discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
-                    sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
-                    standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
-                    variants = obj.ProductVariants.Select(v => new
+                    description = obj.Description,
+                    image = obj.Image,
+                    state = obj.State,
+                    variants = new {
+                        id = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Id,
+                        name = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Name,
+                        sku = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SKU,
+                        standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
+                        sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
+                        discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
+                        state = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().State,
+                        sold = obj.ProductVariants.Select(v => v.OrderItems.Sum(v => v.Amount)).FirstOrDefault()
+                    },
+                     brands = new
                     {
-                        id = v.Id,
-                        cpu = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.ToString(),
-                        ram = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.ToString(),
-                        storage = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.ToString(),
-                        display = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.ToString(),
-                        card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString()
-                    }).ToList()
+                        id = obj.Brand.Id,
+                        name = obj.Brand.Name,
+                        image = obj.Brand.Image,
+                        product_count = obj.Brand.Products.Count()
+                    }
                 })
                 .ToListAsync();
                 if (products == null)
