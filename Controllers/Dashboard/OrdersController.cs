@@ -13,6 +13,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
+    public class UpdateOrderForm
+    {
+        [JsonPropertyName("payment_method")]
+        public string PaymentMethod { get; set; }
+
+        [JsonPropertyName("tracking_no")]
+        public string TrackingNo { get; set; }
+
+        [JsonPropertyName("note")]
+        public string Note { get; set; }
+
+        [JsonPropertyName("state")]
+        public string State { get; set; }
+
+        [JsonPropertyName("payment_state")]
+        public string PaymentState { get; set; }
+    }
     public class NewOrderItemForm
     {
         [Required]
@@ -21,14 +38,14 @@ namespace asp.net.Controllers.Dashboard
 
         [Required]
         [JsonPropertyName("amount")]
-        public int Quantity { get; set; }
+        public int Amount { get; set; }
     }
 
     public class UpdateOrderItemForm
     {
-        [JsonPropertyName("quantity")]
-        public int Quantity { get; set; }
-
+        [JsonPropertyName("amount")]
+        public int Amount { get; set; }
+        
         [JsonPropertyName("serial_number")]
         public string SerialNumber { get; set; }
     }
@@ -303,32 +320,77 @@ namespace asp.net.Controllers.Dashboard
         // PUT: api/Orders/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutOrder(int id, Order order)
+        public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderForm request)
         {
-            if (id != order.Id)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(order).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!OrderExists(id))
+                var response = new
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                    code = 400,
+                    message = "Faile in UpdateOrder Dash",
+                    data = new
+                    {
+                        errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                    }
+                };
+                return BadRequest(response);
             }
 
-            return NoContent();
+            var order = await _context.Orders.Where(o => o.Id == id).FirstOrDefaultAsync();
+            if (order == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                };
+                return NotFound(response);
+            }
+            if(request.PaymentMethod != null)
+            {
+                order.PaymentMethod = request.PaymentMethod;
+            }
+            if(request.TrackingNo != null)
+            {
+                order.TrackingNo = request.TrackingNo;
+            }
+            if(request.Note != null)
+            {
+                order.Note = request.Note;
+            }
+            if(request.State != null)
+            {
+                order.State = request.State;
+            }
+            if(request.PaymentState != null)
+            {
+                order.PaymentState = request.PaymentState;
+            }
+
+            order.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật đơn hàng thành công",
+                data = new
+                {
+                    order = new
+                    {
+                        order.Id,
+                        order.ShoppingMethod,
+                        order.PaymentMethod,
+                        order.PaymentState,
+                        order.State,
+                        order.TrackingNo,
+                        order.AddressId,
+                        order.Note,
+                        order.CreatedAt,
+                        order.UpdatedAt,
+                    }
+                }
+            };
+            return Ok(responseSuccess);
         }
 
         // POST: api/Orders
@@ -400,13 +462,14 @@ namespace asp.net.Controllers.Dashboard
                 message = "Tạo đơn hàng thành công",
                 data = new
                 {
-                    order = new
-                    {
-                        order.Id,
-                        order.CustomerId,
-                        created_at = order.CreatedAt,
-                        order.State,
-                    }
+                    payment_method = order.PaymentMethod,
+                    state = order.State,
+                    payment_state = order.PaymentState,
+                    shopping_method = order.ShoppingMethod,
+                    updated_at = order.UpdatedAt,
+                    created_at = order.CreatedAt,
+                    id = order.Id,
+                    total = order.OrderItems.Where(i => i.OrderId == i.Id).Sum(i => i.Total),
                 }
             };
 
@@ -440,13 +503,23 @@ namespace asp.net.Controllers.Dashboard
                 return BadRequest(response);
             }
 
+            if(order.State == OrderState.Confirmed.ToString())
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Đơn hàng đã được xác nhận, không thể thêm sản phẩm"
+                };
+                return BadRequest(response);
+            }
+
             var orderItems = new OrderItems
             {
                 OrderId = id,
                 VariantId = variant.Id,
-                Amount = request.Quantity,
+                Amount = request.Amount,
                 StandardPrice = variant.StandardPrice,
-                Total = variant.StandardPrice * request.Quantity,
+                Total = variant.StandardPrice * request.Amount,
                 IsRefunded = false,
                 Rating = null,
                 SerialNumber = null,
@@ -463,18 +536,184 @@ namespace asp.net.Controllers.Dashboard
                 {
                     orderItems = new
                     {
-                        order.Id,
+                        orderItems.Id,
+                        order_id = order.Id,
                         orderItems.VariantId,
                         orderItems.Amount,
-
+                        orderItems.StandardPrice,
+                        orderItems.SalePrice,
+                        orderItems.Total,
+                        orderItems.IsRefunded,
+                        orderItems.Rating,
+                        orderItems.Review,
+                        orderItems.SerialNumber,
+                        orderItems.CreatedAt,
+                        orderItems.UpdatedAt,
                     }
                 }
             };
 
-            return Ok();
+            return Ok(responseSuccess);
         }
 
+        [HttpPut("{id}/items/{itemId}")]
+        public async Task<IActionResult> UpdateOrderItem(int id, int itemId, [FromBody] UpdateOrderItemForm request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Fail in UpdateOrderItem",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                };
+                return BadRequest(response);
+            }
 
+            var order = await _context.Orders.Where(o => o.Id == id).FirstOrDefaultAsync();
+            if (order == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                };
+                return NotFound(response);
+            }
+
+            var orderItem = await _context.OrderItems.Where(i => i.Id == itemId).FirstOrDefaultAsync();
+            if (orderItem == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy sản phẩm"
+                };
+                return NotFound(response);
+            }
+
+            if (order.State == OrderState.Confirmed.ToString())
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Đơn hàng đã được xác nhận, không thể thay đổi sản phẩm"
+                };
+                return BadRequest(response);
+            }
+
+            if (request.Amount != 0)
+            {
+                orderItem.Amount = request.Amount;
+                orderItem.Total = orderItem.SalePrice * request.Amount;
+            }
+            if (request.SerialNumber != null)
+            {
+                orderItem.SerialNumber = request.SerialNumber;
+            }
+            orderItem.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật sản phẩm thành công",
+                data = new
+                {
+                    orderItem = new
+                    {
+                        orderItem.Id,
+                        orderItem.OrderId,
+                        orderItem.VariantId,
+                        orderItem.Amount,
+                        orderItem.StandardPrice,
+                        orderItem.SalePrice,
+                        orderItem.Total,
+                        orderItem.IsRefunded,
+                        orderItem.Rating,
+                        orderItem.Review,
+                        orderItem.SerialNumber,
+                        orderItem.CreatedAt,
+                        orderItem.UpdatedAt,
+                    }
+                }
+            };
+            return Ok(responseSuccess);
+        }
+
+        [HttpDelete("{id}/items/{itemId}")]
+        public async Task<IActionResult> DeleteOrderItem(int id, int itemId)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Fail in DeleteOrderItem",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                };
+                return BadRequest(response);
+            }
+
+            var order = await _context.Orders.Where(o => o.Id == id).FirstOrDefaultAsync();
+            if (order == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                };
+                return NotFound(response);
+            }
+
+            var orderItem = await _context.OrderItems.Where(i => i.Id == itemId).FirstOrDefaultAsync();
+            if (orderItem == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy sản phẩm"
+                };
+                return NotFound(response);
+            }
+
+            if (order.State == OrderState.Confirmed.ToString())
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Đơn hàng đã được xác nhận, không thể xóa sản phẩm"
+                };
+                return BadRequest(response);
+            }
+
+            _context.OrderItems.Remove(orderItem);
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Xóa sản phẩm thành công",
+                data = new
+                {
+                    orderItem = new
+                    {
+                        orderItem.Id,
+                        orderItem.OrderId,
+                        orderItem.VariantId,
+                        orderItem.Amount,
+                        orderItem.StandardPrice,
+                        orderItem.SalePrice,
+                        orderItem.Total,
+                        orderItem.IsRefunded,
+                        orderItem.Rating,
+                        orderItem.Review,
+                        orderItem.SerialNumber,
+                        orderItem.CreatedAt,
+                        orderItem.UpdatedAt,
+                    }
+                }
+            };
+            return Ok(responseSuccess);
+        }
         private bool OrderExists(int id)
         {
             return (_context.Orders?.Any(e => e.Id == id)).GetValueOrDefault();
