@@ -297,8 +297,8 @@ namespace asp.net.Controllers.Dashboard
                             }
                         }
                         
-                    }).ToList(),
-                });
+                    }),
+                }).FirstOrDefault();
         
             if (order == null)
             {
@@ -312,7 +312,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 code = 200,
                 data = order
-            };    
+            }; 
 
             return Ok(response);
         }
