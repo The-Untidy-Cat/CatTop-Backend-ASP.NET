@@ -26,6 +26,9 @@ namespace asp.net.Controllers.Dashboard
             [JsonPropertyName("image")]
             public string Image { get; set; }
 
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
         }
         // GET: api/Brands
         [HttpGet]
@@ -124,49 +127,59 @@ namespace asp.net.Controllers.Dashboard
         }
 
         // PUT: api/Brands/5
-        //[HttpPut("{id}")]
-        //public async Task<ActionResult> PutBrand(int id, [FromBody] UpdateBrandForm request)
-        //{
-        //    var item =  await _context.Brands
-        //            .Where(b => b.Id == id)
-        //            .FirstOrDefaultAsync();
-        //    if (item == null)
-        //    {
-        //        var response = new
-        //        {
-        //            code = 404,
-        //            message = "Không tìm thấy thương hiệu"
-        //        };
-        //        return NotFound(response);
-        //    }
-        //    if (request.Name != null)
-        //    {
-        //        item.Name = request.Name;
-        //    }
-            
-        //    if (request.Image != null)
-        //    {
-        //        item.Image = request.Image;
-        //    }
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateBrand(int id, [FromBody] UpdateBrandForm request)
+        {
+            var item = await _context.Brands
+                .Where(b => b.Id == id).FirstOrDefaultAsync();
+            if (item == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy thương hiệu"
+                };
+                return NotFound(response);
+            }
+            if (request.Name != null)
+            {
+                item.Name = request.Name;
+            }
+            if (request.Image != null)
+            {
+                item.Image = request.Image;
+            }
 
+            if (request.State != null)
+            {
+                item.State = request.State;
+            }
 
-        //    item.UpdatedAt = DateTime.Now;
-        //    await _context.SaveChangesAsync();
-        //    var responseSuccess = new 
-        //    {
-        //        code = 200,
-        //        message = "Cập nhật thương hiệu thành công",
-        //        data = new
-        //        {
-        //            item.Id,
-        //            item.Name,
-        //            item.Slug,
-        //            item.Description,
-        //            item.Image,
-        //            item.State,
-        //        }
-        //    };
-        //    return Ok(responseSuccess);
-        //}
+            item.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật thương hiệu thành công",
+                data = new
+                {
+                    
+                    id = item.Id,
+                    name = item.Name,
+                    slug = item.Slug,
+                    description = item.Description,
+                    image = item.Image,
+                    state = item.State,
+                    parent_id = item.ParentId,
+                    created_at = item.CreatedAt,
+                    updated_at = item.UpdatedAt,
+                }
+            };
+            return Ok(responseSuccess);
+        }
+        private bool BrandExists(int id)
+        {
+            return (_context.Brands?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
     }
 }

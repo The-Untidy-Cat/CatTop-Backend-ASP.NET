@@ -26,7 +26,7 @@ namespace asp.net.Models
         [StringLength(255)]
         public string? Name { get; set; }
 
-        [Required]
+        //[Required]
         [Column("slug")]
         [StringLength(255)]
         public string? Slug { get; set; }
@@ -38,6 +38,7 @@ namespace asp.net.Models
         [Required]
         [Column("state")]
         [StringLength(255)]
+        [EnumDataType(typeof(BrandState))]
         public string? State { get; set; }
 
         [Column("image")]
