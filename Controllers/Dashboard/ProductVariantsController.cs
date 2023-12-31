@@ -19,22 +19,144 @@ namespace asp.net.Controllers.Dashboard
         {
             _context = context;
         }
-        public class UpdatVariantForm
+        public class Cpu
+        {
+            public string? Name { get; set; }
+            public int? Cores { get; set; }
+            public int? Threads { get; set; }
+            public int? BaseClock { get; set; }
+            public int? TurboClock { get; set; }
+            public int? Cache { get; set; }
+
+            public override string ToString()
+            {
+                return $"{Name}, {BaseClock}-{TurboClock}GHz";
+            }
+        }
+
+        public class Ram
+        {
+            public int? Capacity { get; set; }
+            public string? Type { get; set; }
+            public int? Frequency { get; set; }
+
+            public override string ToString()
+            {
+                return $"{Capacity}GB {Type} {Frequency}MHz";
+            }
+        }
+
+        public class Storage
+        {
+            public string? Drive { get; set; }
+            public string? Capacity { get; set; }
+            public string? Type { get; set; }
+            public override string ToString()
+            {
+                return $"{Capacity}GB {Drive} {Type}";
+            }
+        }
+
+        public class Display
+        {
+            public string? Size { get; set; }
+            public string? Resolution { get; set; }
+            public string? Technology { get; set; }
+            public int? RefreshRate { get; set; }
+            public bool? Touch { get; set; }
+            public override string ToString()
+            {
+                return $"{Size}, {Resolution}, {Technology}, {Touch}";
+            }
+        }
+
+        public class Gpu
+        {
+            public string? Name { get; set; }
+            public int? Memory { get; set; }
+            public string? Type { get; set; }
+            public int? Frequency { get; set; }
+            public override string ToString()
+            {
+                return $"{Name} {Memory}GB {Type} {Frequency}MHz";
+            }
+        }
+        public class Specifications
+        {
+            public Cpu? Cpu { get; set; }
+            public Ram? Ram { get; set; }
+            public Storage? Storage { get; set; }
+            public Display? Display { get; set; }
+            public Gpu? Gpu { get; set; }
+            public string? Ports { get; set; }
+            public string? Keyboard { get; set; }
+            public bool? Touchpad { get; set; }
+            public bool? Webcam { get; set; }
+            public int? Battery { get; set; }
+            public double? Weight { get; set; }
+            public string? Os { get; set; }
+            public int? Warranty { get; set; }
+            public string? Color { get; set; }
+        }
+        public class UpdateVariantForm
         {
             [JsonPropertyName("name")]
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
-            [JsonPropertyName("slug")]
-            public string Slug { get; set; }
+            [JsonPropertyName("cpu")]
+            public Cpu? Cpu { get; set; }
 
-            [JsonPropertyName("image")]
-            public string Image { get; set; }
+            //[Required]
+            [JsonPropertyName("ram")]
+            public Ram? Ram { get; set; }
 
-            [JsonPropertyName("brand_id")]
-            public int BrandId { get; set; }
+            //[Required]
+            [JsonPropertyName("storage")]
+            public Storage? Storage { get; set; }
 
-            [JsonPropertyName("state")]
-            public string State { get; set; }
+            //[Required]
+            [JsonPropertyName("display")]
+            public Display? Display { get; set; }
+
+            //[Required]
+            [JsonPropertyName("gpu")]
+            public Gpu? Gpu { get; set; }
+
+            //[Required]
+            [JsonPropertyName("ports")]
+            public string? Ports { get; set; }
+
+            //[Required]
+            [JsonPropertyName("keyboard")]
+            public string? Keyboard { get; set; }
+
+            //[Required]
+            [JsonPropertyName("touchpad")]
+            public bool? Touchpad { get; set; }
+
+            [Required]
+            [JsonPropertyName("webcam")]
+            public bool? Webcam { get; set; }
+
+            //[Required]
+            [JsonPropertyName("battery")]
+            public int? Battery { get; set; }
+
+            //[Required]
+            [JsonPropertyName("weight")]
+            public double? Weight { get; set; }
+
+            //[Required]
+            [JsonPropertyName("os")]
+            public string? Os { get; set; }
+
+            //[Required]
+            [JsonPropertyName("warranty")]
+            public int? Warranty { get; set; }
+
+            //[Required]
+            [JsonPropertyName("color")]
+            public string? Color { get; set; }
 
         }
 
@@ -124,40 +246,10 @@ namespace asp.net.Controllers.Dashboard
             return Ok(response);
         }
 
-
-
-        //// POST: api/ProductVariants
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPost]
-        //public async Task<ActionResult<ProductVariants>> PostProductVariants(ProductVariants productVariants)
-        //{
-        //    if (_context.ProductVariants == null)
-        //    {
-        //        return Problem("Entity set 'DbCtx.ProductVariants'  is null.");
-        //    }
-        //    _context.ProductVariants.Add(productVariants);
-        //    await _context.SaveChangesAsync();
-
-        //    return CreatedAtAction("GetProductVariants", new { id = productVariants.Id }, productVariants);
-        //}
-
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(int id, [FromBody] UpdateVariantForm request)
+        public async Task<IActionResult> PutProductVariant(int id, [FromBody] UpdateVariantForm request)
         {
-            if (!ModelState.IsValid)
-            {
-                var response = new
-                {
-                    code = 400,
-                    message = "Cập nhật sản phẩm thất bại",
-                    data = new
-                    {
-                        errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
-                    }
-                };
-                return BadRequest(response);
-            }
-            var item = await _context.Products
+            var item = await _context.ProductVariants
                     .Where(p => p.Id == id)
                     .FirstOrDefaultAsync();
             if (item == null)
@@ -165,53 +257,102 @@ namespace asp.net.Controllers.Dashboard
                 var response = new
                 {
                     code = 404,
-                    message = "Không tìm thấy sản phẩm"
+                    message = "Không tìm thấy biến thể"
                 };
                 return NotFound(response);
             }
+
             if (request.Name != null)
             {
                 item.Name = request.Name;
             }
-            if (request.Slug != null)
+            string jsonString = item.Specifications;
+            // Chuyển chuỗi JSON thành đối tượng C#
+            Specifications specifications = JsonConvert.DeserializeObject<Specifications>(jsonString);
+
+            // Thay đổi giá trị của trường "name" trong đối tượng C#
+            if (specifications.Cpu != null && request.Cpu.Name != null)
             {
-                item.Slug = request.Slug;
-            }
-            if (request.BrandId != 0)
-            {
-                item.BrandId = request.BrandId;
-            }
-            if (request.Image != null)
-            {
-                item.Image = request.Image;
-            }
-            if (request.State != null)
-            {
-                item.State = request.State;
+                specifications.Cpu.Name = request.Cpu.Name;
             }
 
+            // Chuyển đối tượng C# thành chuỗi JSON
+            string updatedJsonString = JsonConvert.SerializeObject(specifications);
 
-            item.UpdatedAt = DateTime.Now;
+            //cpu.Cache = request.Cpu.Cores;
+
+            item.Updated_at = DateTime.Now;
             await _context.SaveChangesAsync();
+
             var responseSuccess = new
             {
                 code = 200,
-                message = "Cập nhật sản phẩm thành công",
+                message = "Cập nhật biến thể thành công",
                 data = new
                 {
-                    item.Id,
-                    item.Name,
-                    item.Slug,
-                    item.Description,
-                    item.Image,
-                    item.State,
+                    id = item.Id,
+                    SKU = item.SKU,
+                    image = item.Image,
+                    name = item.Name,
+                    standard_price = item.StandardPrice,
+                    tax_rate = item.TaxRate,
+                    discount = item.Discount,
+                    extra_fee = item.ExtraFee,
+                    cost_price = item.CostPrice,
+                    specification = new
+                    {
+                        cpu = new
+                        {
+                            name = updatedJsonString
+                            //cores = cpu.Cores,
+                            //    threads = request.Cpu.Threads,
+                            //    base_clock = request.Cpu.BaseClock,
+                            //    turbo_clock = request.Cpu.TurboClock,
+                            //    cache = request.Cpu.Cache
+                            //},
+                            //ram = new
+                            //{
+                            //    capacity = request.Ram.Capacity,
+                            //    type = request.Ram.Type,
+                            //    frequency = request.Ram.Frequency,
+                            //},
+                            //storage = new
+                            //{
+                            //    drive = request.Storage.Drive.ToString(),
+                            //    capacity = request.Storage.Capacity.ToString(),
+                            //    type = request.Storage.Type.ToString(),
+                            //},
+                            //display = new
+                            //{
+                            //    size = request.Display.Size.ToString(),
+                            //    resolution = request.Display.Resolution.ToString(),
+                            //    technology = request.Display.Technology.ToString(),
+                            //    refresh_rate = request.Display.RefreshRate.ToString(),
+                            //    touch = request.Display.Touch.ToString(),
+                            //},
+                            //gpu = new
+                            //{
+                            //    name = request.Gpu.Name.ToString(),
+                            //    memory = request.Gpu.Memory.ToString(),
+                            //    type = request.Gpu.Type.ToString(),
+                            //    frequency = request.Gpu.Frequency.ToString(),
+                            //},
+                            //ports = request.Ports.ToString(),
+                            //keyboard = request.Keyboard.ToString(),
+                            //touchpad = request.Touchpad.ToString(),
+                            //webcam = request.Webcam.ToString(),
+                            //battery = request.Battery.ToString(),
+                            //weight = request.Weight.ToString(),
+                            //os = request.Os.ToString(),
+                            //warranty = request.Warranty.ToString(),
+                            //color = request.Color.ToString(),
+                        },
+                    }
                 }
+                    //state = item.State,
+                    //sold = item.OrderItems.Sum(oi => oi.Amount)
             };
             return Ok(responseSuccess);
-        }
-        private bool ProductVariantsExists(int id)
-        {
-            return (_context.ProductVariants?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

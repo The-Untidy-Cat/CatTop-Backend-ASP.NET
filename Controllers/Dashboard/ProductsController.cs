@@ -62,7 +62,6 @@ namespace asp.net.Controllers.Dashboard
         }
         // GET: api/Products
         [HttpGet]
-
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
             if (_context.Products == null)
