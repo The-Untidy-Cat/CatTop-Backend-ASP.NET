@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
 using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -23,6 +24,20 @@ namespace asp.net.Controllers.Dashboard
             [JsonPropertyName("name")]
             public string Name { get; set; }
 
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
+        public class NewBrandForm
+        {
+            [Required]
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
+
+            [Required]
             [JsonPropertyName("image")]
             public string Image { get; set; }
 
@@ -177,9 +192,40 @@ namespace asp.net.Controllers.Dashboard
             };
             return Ok(responseSuccess);
         }
+        [HttpPost]
+        public async Task<ActionResult<IEnumerable<Brand>>> CreateBrand([FromBody] NewBrandForm request)
+        {
+            
+            var brand = new Brand
+            {
+                Name = request.Name,
+                Image = request.Image,
+                State = BrandState.Active.ToString(),
+                CreatedAt = DateTime.Now,
+            };
+            await _context.Brands.AddAsync(brand);
+            await _context.SaveChangesAsync();
+
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Tạo thương hiệu thành công",
+                data = new
+                {
+                    id = brand.Id,
+                    name = brand.Name,
+                    image = brand.Image,
+                    state = brand.State,
+                    created_at = brand.CreatedAt,
+                }
+            };
+
+            return Ok(responseSuccess);
+        }
         private bool BrandExists(int id)
         {
             return (_context.Brands?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
     }
 }

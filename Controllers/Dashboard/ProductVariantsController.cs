@@ -19,7 +19,24 @@ namespace asp.net.Controllers.Dashboard
         {
             _context = context;
         }
+        public class UpdatVariantForm
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
 
+            [JsonPropertyName("slug")]
+            public string Slug { get; set; }
+
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [JsonPropertyName("brand_id")]
+            public int BrandId { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
 
         // GET: api/ProductVariants/5
         [HttpGet("{id}")]
@@ -107,9 +124,7 @@ namespace asp.net.Controllers.Dashboard
             return Ok(response);
         }
 
-        // PUT: api/ProductVariants/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        
+
 
         //// POST: api/ProductVariants
         //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -126,26 +141,74 @@ namespace asp.net.Controllers.Dashboard
         //    return CreatedAtAction("GetProductVariants", new { id = productVariants.Id }, productVariants);
         //}
 
-        //// DELETE: api/ProductVariants/5
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> DeleteProductVariants(int id)
-        //{
-        //    if (_context.ProductVariants == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    var productVariants = await _context.ProductVariants.FindAsync(id);
-        //    if (productVariants == null)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProduct(int id, [FromBody] UpdateVariantForm request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Cập nhật sản phẩm thất bại",
+                    data = new
+                    {
+                        errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                    }
+                };
+                return BadRequest(response);
+            }
+            var item = await _context.Products
+                    .Where(p => p.Id == id)
+                    .FirstOrDefaultAsync();
+            if (item == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy sản phẩm"
+                };
+                return NotFound(response);
+            }
+            if (request.Name != null)
+            {
+                item.Name = request.Name;
+            }
+            if (request.Slug != null)
+            {
+                item.Slug = request.Slug;
+            }
+            if (request.BrandId != 0)
+            {
+                item.BrandId = request.BrandId;
+            }
+            if (request.Image != null)
+            {
+                item.Image = request.Image;
+            }
+            if (request.State != null)
+            {
+                item.State = request.State;
+            }
 
-        //    _context.ProductVariants.Remove(productVariants);
-        //    await _context.SaveChangesAsync();
 
-        //    return NoContent();
-        //}
-
+            item.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật sản phẩm thành công",
+                data = new
+                {
+                    item.Id,
+                    item.Name,
+                    item.Slug,
+                    item.Description,
+                    item.Image,
+                    item.State,
+                }
+            };
+            return Ok(responseSuccess);
+        }
         private bool ProductVariantsExists(int id)
         {
             return (_context.ProductVariants?.Any(e => e.Id == id)).GetValueOrDefault();

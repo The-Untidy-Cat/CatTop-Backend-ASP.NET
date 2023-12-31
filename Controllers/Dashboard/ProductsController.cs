@@ -5,6 +5,7 @@ using asp.net.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -37,7 +38,28 @@ namespace asp.net.Controllers.Dashboard
             public string State { get; set; }
 
         }
+        public class NewProductForm
+        {
+            [Required]
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
 
+            [Required]
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [Required]
+            [JsonPropertyName("slug")]
+            public string Slug { get; set; }
+
+            [Required]
+            [JsonPropertyName("brand")]
+            public int BrandId { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
         // GET: api/Products
         [HttpGet]
 
@@ -216,41 +238,38 @@ namespace asp.net.Controllers.Dashboard
         // POST: api/Products
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<IEnumerable<Product>>> CreateProduct([FromBody] NewProductForm request)
         {
-            if (_context.Products == null)
+
+            var product = new Product
             {
-                return Problem("Entity set 'DbCtx.Products'  is null.");
-            }
-            _context.Products.Add(product);
+                Name = request.Name,
+                Slug = request.Slug,
+                Image = request.Image,
+                State = ProductState.Published.ToString(),
+                CreatedAt = DateTime.Now,
+                BrandId = request.BrandId,
+
+            };
+            await _context.Products.AddAsync(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
-        }
-
-        // DELETE: api/Products/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(long id)
-        {
-            if (_context.Products == null)
+            var responseSuccess = new
             {
-                return NotFound();
-            }
-            var product = await _context.Products.FindAsync(id);
-            if (product == null)
-            {
-                return NotFound();
-            }
+                code = 200,
+                message = "Tạo sản phẩm thành công",
+                data = new
+                {
+                    id = product.Id,
+                    name = product.Name,
+                    slug = product.Slug,
+                    image = product.Image,
+                    state = product.State,
+                    brand_id = product.BrandId,
+                }
+            };
 
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ProductExists(long id)
-        {
-            return (_context.Products?.Any(e => e.Id == id)).GetValueOrDefault();
+            return Ok(responseSuccess);
         }
     }
 }
