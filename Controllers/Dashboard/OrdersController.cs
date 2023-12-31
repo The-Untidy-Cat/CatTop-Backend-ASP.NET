@@ -31,19 +31,19 @@ namespace asp.net.Controllers.Dashboard
     public class UpdateOrderForm
     {
         [JsonPropertyName("payment_method")]
-        public string PaymentMethod { get; set; }
+        public string? PaymentMethod { get; set; }
 
         [JsonPropertyName("tracking_no")]
-        public string TrackingNo { get; set; }
+        public string? TrackingNo { get; set; }
 
         [JsonPropertyName("note")]
-        public string Note { get; set; }
+        public string? Note { get; set; }
 
         [JsonPropertyName("state")]
-        public string State { get; set; }
+        public string? State { get; set; }
 
         [JsonPropertyName("payment_state")]
-        public string PaymentState { get; set; }
+        public string? PaymentState { get; set; }
     }
     public class NewOrderItemForm
     {
@@ -62,7 +62,7 @@ namespace asp.net.Controllers.Dashboard
         public int Amount { get; set; }
         
         [JsonPropertyName("serial_number")]
-        public string SerialNumber { get; set; }
+        public string? SerialNumber { get; set; }
     }
     public class NewDashOrderForm
     {
@@ -341,6 +341,7 @@ namespace asp.net.Controllers.Dashboard
                         id = i.Id,
                         variant_id = i.VariantId,
                         amount = i.Amount,
+                        standard_price = i.StandardPrice,
                         sale_price = i.SalePrice,
                         total = i.Total,
                         order_id = i.OrderId,
@@ -351,7 +352,7 @@ namespace asp.net.Controllers.Dashboard
                             id = i.ProductVariant.Id,
                             name = i.ProductVariant.Name,
                             sku = i.ProductVariant.SKU,
-                            sold = i.ProductVariant.OrderItems.Count(),
+                            standard_price = i.ProductVariant.StandardPrice,
                             product = new
                             {
                                 id = i.ProductVariant.Product.Id,
