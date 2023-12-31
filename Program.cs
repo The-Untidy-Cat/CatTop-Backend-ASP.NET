@@ -9,6 +9,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var allowOrigins = builder.Configuration.GetSection("CorsSetting:AllowOrigins").Get<string[]>();
 
 builder.Services.Configure<AuthSetting>(builder.Configuration.GetSection("AuthSetting"));
+builder.Services.Configure<MailSetting>(builder.Configuration.GetSection("MailSetting"));
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy",
@@ -24,10 +26,11 @@ builder.Services.AddDbContext<DbCtx>(options => options
     .UseMySql(connectionString,
     ServerVersion.AutoDetect(connectionString)
     ), ServiceLifetime.Scoped);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddTransient<IMailService, MailService>();
 
 var app = builder.Build();
 

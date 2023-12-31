@@ -9,6 +9,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
+using System.Configuration;
 
 namespace asp.net.Controllers.Auth
 {
@@ -45,6 +48,41 @@ namespace asp.net.Controllers.Auth
 
         [Required]
         [StringLength(100, MinimumLength = 6)]
+        public string? Password { get; set; }
+    }
+
+    public class RequestOTPForm
+    {
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+    }
+
+    public class ForgotPasswordForm
+    {
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Required]
+        [RegularExpression(@"^([0-9]){6,}$")]
+        [JsonPropertyName("token")]
+        public string OTP { get; set; }
+    }
+
+    public class ResetPasswordForm
+    {
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Required]
+        [RegularExpression(@"^([0-9]){6,}$")]
+        [JsonPropertyName("token")]
+        public string OTP { get; set; }
+
+        [Required]
+        [MinLength(6)]
         public string? Password { get; set; }
     }
 
@@ -116,11 +154,13 @@ namespace asp.net.Controllers.Auth
     {
         private readonly DbCtx _context;
         private readonly AuthSetting _authSetting;
+        private readonly IMailService _mailService;
 
-        public AuthController(IOptions<AuthSetting> options, DbCtx context)
+        public AuthController(IOptions<AuthSetting> options, DbCtx context, IMailService _MailService)
         {
             _context = context;
             _authSetting = options.Value;
+            _mailService = _MailService;
         }
 
         [HttpPost("register")]
@@ -163,6 +203,15 @@ namespace asp.net.Controllers.Auth
             var token = AuthService.GenerateToken(user, _authSetting);
             HttpResponse response = HttpContext.Response;
             AuthService.AddTokenToCookie(response, token, _authSetting);
+            var emailData = new HTMLMailData
+            {
+                Email = request.Email,
+                Subject = "Đăng ký tài khoản thành công",
+                Content = "<p>Bạn vừa đăng ký tài khoản tại CatTop. Thông tin tài khoản của bạn:</p>" +
+                "<p>- Tên đăng nhập: <strong>" + request.Username + "</strong></p>" +
+                "<p>Sử dụng tài khoản này để đăng nhập vào CatTop.</p>"
+            };
+            await _mailService.SendHTMLMailAsync(emailData);
             return Ok(new
             {
                 code = 200,
@@ -286,13 +335,173 @@ namespace asp.net.Controllers.Auth
                 }
             });
         }
+
+        [HttpPost("logout")]
+        public async Task<ActionResult> Logout()
+        {
+            HttpResponse response = HttpContext.Response;
+            response.Cookies.Delete(_authSetting.Cookie.Name);
+            return Ok(new
+            {
+                code = 200,
+                message = "Đăng xuất thành công"
+            });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult> ForgotPassword([FromBody] RequestOTPForm form)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Yêu cầu không hợp lệ"
+                });
+            }
+            var customer = await _context.Customers.Where(c => c.Email == form.Email).FirstOrDefaultAsync();
+            var employee = await _context.Employees.Where(e => e.Email == form.Email).FirstOrDefaultAsync();
+            if (customer == null && employee == null) return BadRequest(new
+            {
+                code = 400,
+                message = "Không tìm thấy tài khoản"
+            });
+            var user = customer?.User ?? employee?.User;
+            var existingToken = await _context.PasswordResetTokens.Where(t => t.Email == form.Email).FirstOrDefaultAsync();
+            if (existingToken != null)
+            {
+                _context.PasswordResetTokens.Remove(existingToken);
+                await _context.SaveChangesAsync();
+            }
+            var OTP = new Random().Next(100000, 999999).ToString();
+            var token = new PasswordResetToken
+            {
+                Email = form.Email,
+                Token = OTP,
+                CreatedAt = DateTime.Now
+            };
+            _context.PasswordResetTokens.Add(token);
+            await _context.SaveChangesAsync();
+            var emailData = new HTMLMailData
+            {
+                Email = form.Email,
+                Subject = "Yêu cầu đặt lại mật khẩu",
+                Content = "<p>Bạn vừa yêu cầu đặt lại mật khẩu tại CatTop.</p>" +
+                "<p>Mã OTP của bạn là: <strong>" + OTP + "</strong>.</p>" +
+                "<p>Mã OTP này sẽ hết hạn trong vòng <strong>" + _authSetting.ResetPassword.MaxAge + "</strong> giây. " +
+                "Không chia sẻ mã OTP với bất kỳ ai, kể cả nhân viên của cửa hàng.</p>"
+            };
+            var isSent = await _mailService.SendHTMLMailAsync(emailData);
+            if (!isSent)
+            {
+                _context.PasswordResetTokens.Remove(token);
+                await _context.SaveChangesAsync();
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Không thể gửi email"
+                });
+            }
+            return Ok(new
+            {
+                code = 200,
+                message = "Đã gửi email",
+                data = new
+                {
+                    max_age = _authSetting.ResetPassword.MaxAge
+                }
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordForm form)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Yêu cầu không hợp lệ"
+                });
+            }
+            var token = await _context.PasswordResetTokens.Where(t => t.Email == form.Email).FirstOrDefaultAsync();
+            if (token == null) return BadRequest(new
+            {
+                code = 400,
+                message = "Mã OTP không hợp lệ"
+            });
+            DateTime createdAt = DateTime.Parse(token.CreatedAt.ToString());
+            if (DateTime.Now >= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
+            {
+                _context.PasswordResetTokens.Remove(token);
+                await _context.SaveChangesAsync();
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Mã OTP đã hết hạn"
+                });
+            }
+            var customer = await _context.Customers.Where(c => c.Email == form.Email).Select(c => c.User).FirstOrDefaultAsync();
+            var employee = await _context.Employees.Where(e => e.Email == form.Email).Select(e => e.User).FirstOrDefaultAsync();
+            var user = customer ?? employee;
+            if (user == null) return BadRequest(new
+            {
+                code = 400,
+                message = "Không tìm thấy tài khoản"
+            });
+            user.Password = BCrypt.Net.BCrypt.HashPassword(form.Password);
+            _context.PasswordResetTokens.Remove(token);
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                code = 200,
+                message = "Đã đổi mật khẩu"
+            });
+        }
+
+        [HttpPost("verify-otp")]
+        public async Task<ActionResult> VerifyOTP([FromBody] ForgotPasswordForm form)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Yêu cầu không hợp lệ"
+                });
+            }
+            var token = await _context.PasswordResetTokens.Where(t => t.Email == form.Email).FirstOrDefaultAsync();
+            if (token == null) return BadRequest(new
+            {
+                code = 400,
+                message = "Mã OTP không hợp lệ"
+            });
+            DateTime createdAt = DateTime.Parse(token.CreatedAt.ToString());
+            if (DateTime.Now >= createdAt.AddSeconds(_authSetting.ResetPassword.MaxAge))
+            {
+                _context.PasswordResetTokens.Remove(token);
+                await _context.SaveChangesAsync();
+                return BadRequest(new
+                {
+                    code = 400,
+                    message = "Mã OTP đã hết hạn"
+                });
+            }
+
+            return Ok(new
+            {
+                code = 200,
+                message = "Mã OTP hợp lệ"
+            });
+        }
+
         [HttpGet("csrf")]
         public async Task<ActionResult> GetCsrf()
         {
             var response = new
             {
                 code = 200,
-                request = new
+                data = new
                 {
                     csrf = Guid.NewGuid().ToString(),
                 },

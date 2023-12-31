@@ -16,6 +16,9 @@ namespace asp.net.Services
 
         [JsonProperty("Cookie")]
         public CookieSetting? Cookie { get; set; }
+
+        [JsonProperty("ResetPassword")]
+        public ResetPasswordSetting? ResetPassword { get; set; }
     }
 
     public class JwtSetting
@@ -48,5 +51,11 @@ namespace asp.net.Services
         public int MaxAge { get; set; }
         [JsonProperty("Samesite")]
         public SameSiteMode SameSite { get; set; }
+    }
+
+    public class ResetPasswordSetting
+    {
+        [JsonProperty("MaxAge")]
+        public int MaxAge { get; set; }
     }
 }

@@ -54,7 +54,7 @@ namespace asp.net.Controllers.CustomerController
             _context = context;
         }
 
-        [HttpGet("user")]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
             var user = HttpContext.Items["user"];

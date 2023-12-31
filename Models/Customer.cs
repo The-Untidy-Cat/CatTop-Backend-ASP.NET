@@ -41,7 +41,6 @@ namespace asp.net.Models
 
         [Required]
         [Column("phone_number")]
-        [Phone]
         public string PhoneNumber { get; set; }
 
         [Column("date_of_birth")]
@@ -55,22 +54,19 @@ namespace asp.net.Models
         public string State { get; set; }
 
         [Column("user_id")]
-        [ForeignKey("User")]
         public int UserId { get; set; }
         public User User { get; set; }
 
         [Column("created_at")]
-        [Display(Name = "created_at")]
         public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
-        [Display(Name = "updated_at")]
         public DateTime? UpdatedAt { get; set; }
 
         public ICollection<Order>? Orders { get; set; }
 
-        public virtual AddressBook AddressBooks { get; set; }
-        public virtual Cart Cart { get; set; }
+        public AddressBook AddressBooks { get; set; }
+        public Cart Cart { get; set; }
 
     }
 }
