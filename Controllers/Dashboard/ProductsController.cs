@@ -32,7 +32,6 @@ namespace asp.net.Controllers.Dashboard
                     id = prod.Id,
                     name = prod.Name,
                     state = prod.State,
-                    description = prod.Description,
                     slug = prod.Slug,
                     created_at = prod.CreatedAt,
                     brand = new
@@ -40,14 +39,7 @@ namespace asp.net.Controllers.Dashboard
                         id = prod.BrandId,
                         name = prod.Brand.Name
                     },
-                    product_variant = new
-                    {
-                        id = prod.ProductVariants.Select(v => v.Id),
-                        name = prod.ProductVariants.Select(v => v.Name),
-                        sale_price = prod.ProductVariants.Select(v => v.SalePrice),
-                        tax_rate = prod.ProductVariants.Select(v => v.TaxRate),
-                        standard_price = prod.ProductVariants.Select(v => v.StandardPrice),
-                    }
+                    variant_count = prod.ProductVariants.Count()
                 });
             //.ToListAsync();
             if (request.filter != null && request.keyword != null)
