@@ -13,6 +13,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
+    public class SearchOrderForm: SearchForm
+    {
+        public string state { get; set; }
+    }
     public class UpdateOrderForm
     {
         [JsonPropertyName("payment_method")]
@@ -86,7 +90,7 @@ namespace asp.net.Controllers.Dashboard
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromQuery] SearchForm request)
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromQuery] SearchOrderForm request)
         {
             if (_context.Orders == null)
             {
@@ -190,12 +194,11 @@ namespace asp.net.Controllers.Dashboard
 
                         }
                     }),
-
-
+                    o.State,
+                    created_at = o.CreatedAt,
+                    updated_at = o.UpdatedAt,
                 }); ;
-            
-
-         
+           
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
@@ -210,7 +213,47 @@ namespace asp.net.Controllers.Dashboard
                         break;
                 }
             }
-                var length = orders.Count();
+            if (request.state != null)
+            {
+                orders = orders.Where(o => o.State == request.state);
+            }    
+            if (request.start_date != null && request.end_date != null)
+            {
+                orders = orders.Where(o => o.items.Any(i => i.variant.created_at >= DateTime.Parse(request.start_date) && i.variant.created_at <= DateTime.Parse(request.end_date)));
+            }
+            if (request.sort != null && request.order != null)
+            {
+                switch (request.sort)
+                {
+                    case "created_at":
+                        if (request.order == "asc")
+                        {
+                            orders = orders.OrderBy(o => o.created_at);
+                        }
+                        else
+                        {
+                            orders = orders.OrderByDescending(o => o.created_at);
+                        }
+                        break;
+                    case "total":
+                        if (request.order == "asc")
+                        {
+                            orders = orders.OrderBy(o => o.items.Sum(i => i.amount * i.sale_price));
+                        }
+                        else
+                        {
+                            orders = orders.OrderByDescending(o => o.items.Sum(i => i.amount * i.sale_price));
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                orders = orders.OrderByDescending(o => o.created_at);
+            }
+            var length = orders.Count();
             var records =
                 await orders
                 .Skip(request.offset).Take(request.limit)

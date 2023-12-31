@@ -25,19 +25,26 @@ namespace asp.net.Middlewares
 
         public async Task Invoke(HttpContext httpContext)
         {
-            var token = httpContext.Request.Cookies["token"];
-            Console.WriteLine(token);
-            if (token == null)
+            try
+            {
+                var token = httpContext.Request.Cookies["token"];
+                if (token == null)
+                {
+                    await _next(httpContext);
+                }
+                var user = AuthService.ValidateToken(token, _authSettings);
+                if (user == null)
+                {
+                    await _next(httpContext);
+                }
+                httpContext.Items["user"] = user;
+                await _next(httpContext);
+            }
+            catch (Exception e)
             {
                 await _next(httpContext);
             }
-            var user = AuthService.ValidateToken(token, _authSettings);
-            if (user == null)
-            {
-                await _next(httpContext);
-            }
-            httpContext.Items["user"] = user;
-            await _next(httpContext);
+
         }
         private async Task ReturnErrorResponse(HttpContext context, HttpStatusCode httpStatusCode)
         {
