@@ -15,7 +15,8 @@ namespace asp.net.Controllers.Dashboard
 {
     public class SearchOrderForm: SearchForm
     {
-        public string state { get; set; }
+        [JsonPropertyName("state")]
+        public string? state { get; set; }
     }
     public class UpdateOrderForm
     {
@@ -106,6 +107,7 @@ namespace asp.net.Controllers.Dashboard
                         customer_id = o.CustomerId,
                         first_name = o.Customer.FirstName,
                         last_name = o.Customer.LastName,
+                        phone_number = o.Customer.PhoneNumber,
                     },
                     employee = new
                     {
@@ -182,6 +184,7 @@ namespace asp.net.Controllers.Dashboard
                             created_at = i.ProductVariant.Created_at,
                             updated_at = i.ProductVariant.Updated_at,
                             sold = i.Order.OrderItems.Where(i => i.OrderId == i.Id).Count(),
+                            
                             product = new
                             {
                                 id = i.ProductVariant.Product.Id,
@@ -194,6 +197,7 @@ namespace asp.net.Controllers.Dashboard
 
                         }
                     }),
+                    payment_state = o.PaymentState,
                     o.State,
                     created_at = o.CreatedAt,
                     updated_at = o.UpdatedAt,
@@ -203,11 +207,20 @@ namespace asp.net.Controllers.Dashboard
             {
                 switch (request.filter)
                 {
-                    case "customer_firstname":
+                    case "id":
+                        orders = orders.Where(o => o.id.ToString().Contains(request.keyword));
+                        break;
+                    case "customer_name":
                         orders = orders.Where(o => o.customer.first_name.ToString().Contains(request.keyword));
                         break;
-                    case "employee_firstname":
+                    case "customer_phone_number":
+                        orders = orders.Where(o => o.customer.phone_number.ToString().Contains(request.keyword));
+                        break;
+                    case "employee_name":
                         orders = orders.Where(o => o.employee.first_name.ToString().Contains(request.keyword));
+                        break;
+                    case "payment_state":
+                        orders = orders.Where(o => o.payment_state.ToString().Contains(request.keyword));
                         break;
                     default:
                         break;

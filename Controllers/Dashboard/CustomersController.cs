@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
-    public class SearchForm
+    public abstract class SearchForm
     {
         [DefaultValue(10)]
         public int limit { get; set; }
