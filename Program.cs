@@ -57,14 +57,14 @@ app.MapControllers();
 // Bảo vệ tất cả các route bằng middleware UserMiddleware
 app.UseUserMiddleware();
 // Bảo vệ tất cả các route customer bằng middleware CustomerMiddleware
-//app.Map("/v1/customer", subApp =>
-//{
-//    subApp.UseCustomerMiddleware();
-//    subApp.UseEndpoints(endpoints =>
-//    {
-//        endpoints.MapControllers();
-//    });
-//});
+app.Map("/v1/customer", subApp =>
+{
+    subApp.UseCustomerMiddleware();
+    subApp.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    });
+});
 
 // Bảo vệ tất cả các route dashboard bằng middleware DashboardMiddleware
 //app.Map("/v1/dashboard", subApp =>

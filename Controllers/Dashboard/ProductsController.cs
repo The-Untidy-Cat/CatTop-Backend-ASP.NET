@@ -60,6 +60,16 @@ namespace asp.net.Controllers.Dashboard
             public string State { get; set; }
 
         }
+        public class SearchDateForStatistic
+        {
+            [JsonPropertyName("start_date")]
+            [DataType(DataType.Date)]
+            public string? start_date { get; set; }
+
+            [JsonPropertyName("end_date")]
+            [DataType(DataType.Date)]
+            public string? end_date { get; set; }
+        }
         // GET: api/Products
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
@@ -268,6 +278,72 @@ namespace asp.net.Controllers.Dashboard
                 }
             };
 
+            return Ok(responseSuccess);
+        }
+        [HttpGet("statistics")]
+        public async Task<ActionResult<IEnumerable<Product>>> GetStatisticsProducts([FromQuery] SearchDateForStatistic request)
+        {
+
+            var productsStatistic = new List<object>();
+            var query = from v in _context.ProductVariants
+                        join p in _context.Products on v.ProductID equals p.Id
+                        join oi in _context.OrderItems on v.Id equals oi.VariantId
+                        join od in _context.Orders on oi.OrderId equals od.Id
+                        group new { p, v, oi, od } by new
+                        {
+                            p.Id,
+                            p.Name,
+                            VariantName = v.Name,
+                            v.Discount,
+                            v.SalePrice,
+                            v.StandardPrice
+                        } into obj
+                        orderby obj.Sum(x => x.oi.Total) descending
+                        select new
+                        {
+                            ProductId = obj.Key.Id,
+                            ProductName = obj.Key.Name,
+                            VariantName = obj.Key.VariantName,
+                            OrderCount = obj.Count(),
+                            TotalAmount = obj.Sum(x => x.oi.Amount),
+                            TotalSum = obj.Sum(x => x.oi.Total),
+                            Discount = obj.Key.Discount,
+                            SalePrice = obj.Key.SalePrice,
+                            StandardPrice = obj.Key.StandardPrice
+                        };
+            var result = query.ToList();
+
+
+            if (request.start_date != null && request.end_date != null)
+            {
+
+                foreach (var total in result)
+                {
+                    var statistic = new
+                    {
+                        id = total.ProductId,
+                        product_name = total.ProductName,
+                        variant_name = total.VariantName,
+                        total_order = total.OrderCount,
+                        total_amount = total.TotalAmount,
+                        total_sale = total.TotalSum,
+                        discount = total.Discount,
+                        sale_price = total.SalePrice,
+                        standard_price = total.StandardPrice
+                    };
+                    productsStatistic.Add(statistic);
+                }
+            }
+
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Thống kê sản phẩm thành công",
+                data = new
+                {
+                    productsStatistic,
+                }
+            };
             return Ok(responseSuccess);
         }
     }

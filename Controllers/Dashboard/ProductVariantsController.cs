@@ -6,6 +6,7 @@ using asp.net.Models;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json.Linq;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -19,142 +20,68 @@ namespace asp.net.Controllers.Dashboard
         {
             _context = context;
         }
-        public class Cpu
-        {
-            public string? Name { get; set; }
-            public int? Cores { get; set; }
-            public int? Threads { get; set; }
-            public int? BaseClock { get; set; }
-            public int? TurboClock { get; set; }
-            public int? Cache { get; set; }
 
-            public override string ToString()
-            {
-                return $"{Name}, {BaseClock}-{TurboClock}GHz";
-            }
-        }
-
-        public class Ram
-        {
-            public int? Capacity { get; set; }
-            public string? Type { get; set; }
-            public int? Frequency { get; set; }
-
-            public override string ToString()
-            {
-                return $"{Capacity}GB {Type} {Frequency}MHz";
-            }
-        }
-
-        public class Storage
-        {
-            public string? Drive { get; set; }
-            public string? Capacity { get; set; }
-            public string? Type { get; set; }
-            public override string ToString()
-            {
-                return $"{Capacity}GB {Drive} {Type}";
-            }
-        }
-
-        public class Display
-        {
-            public string? Size { get; set; }
-            public string? Resolution { get; set; }
-            public string? Technology { get; set; }
-            public int? RefreshRate { get; set; }
-            public bool? Touch { get; set; }
-            public override string ToString()
-            {
-                return $"{Size}, {Resolution}, {Technology}, {Touch}";
-            }
-        }
-
-        public class Gpu
-        {
-            public string? Name { get; set; }
-            public int? Memory { get; set; }
-            public string? Type { get; set; }
-            public int? Frequency { get; set; }
-            public override string ToString()
-            {
-                return $"{Name} {Memory}GB {Type} {Frequency}MHz";
-            }
-        }
-        public class Specifications
-        {
-            public Cpu? Cpu { get; set; }
-            public Ram? Ram { get; set; }
-            public Storage? Storage { get; set; }
-            public Display? Display { get; set; }
-            public Gpu? Gpu { get; set; }
-            public string? Ports { get; set; }
-            public string? Keyboard { get; set; }
-            public bool? Touchpad { get; set; }
-            public bool? Webcam { get; set; }
-            public int? Battery { get; set; }
-            public double? Weight { get; set; }
-            public string? Os { get; set; }
-            public int? Warranty { get; set; }
-            public string? Color { get; set; }
-        }
+        //public class Specifications
+        //{
+        //    public Cpu? Cpu { get; set; }
+        //    public Ram? Ram { get; set; }
+        //    public Storage? Storage { get; set; }
+        //    public Display? Display { get; set; }
+        //    public Gpu? Gpu { get; set; }
+        //    public string? Ports { get; set; }
+        //    public string? Keyboard { get; set; }
+        //    public bool? Touchpad { get; set; }
+        //    public bool? Webcam { get; set; }
+        //    public int? Battery { get; set; }
+        //    public double? Weight { get; set; }
+        //    public string? Os { get; set; }
+        //    public int? Warranty { get; set; }
+        //    public string? Color { get; set; }
+        //}
         public class UpdateVariantForm
         {
-            [JsonPropertyName("name")]
-            public string? Name { get; set; }
+            //[JsonPropertyName("name")]
+            //public string? Name { get; set; }
 
             [JsonPropertyName("cpu")]
             public Cpu? Cpu { get; set; }
 
-            //[Required]
             [JsonPropertyName("ram")]
             public Ram? Ram { get; set; }
 
-            //[Required]
             [JsonPropertyName("storage")]
             public Storage? Storage { get; set; }
 
-            //[Required]
             [JsonPropertyName("display")]
             public Display? Display { get; set; }
 
-            //[Required]
             [JsonPropertyName("gpu")]
             public Gpu? Gpu { get; set; }
 
-            //[Required]
             [JsonPropertyName("ports")]
             public string? Ports { get; set; }
 
-            //[Required]
             [JsonPropertyName("keyboard")]
             public string? Keyboard { get; set; }
 
-            //[Required]
             [JsonPropertyName("touchpad")]
             public bool? Touchpad { get; set; }
 
-            [Required]
             [JsonPropertyName("webcam")]
             public bool? Webcam { get; set; }
 
-            //[Required]
             [JsonPropertyName("battery")]
             public int? Battery { get; set; }
 
-            //[Required]
             [JsonPropertyName("weight")]
             public double? Weight { get; set; }
 
-            //[Required]
             [JsonPropertyName("os")]
             public string? Os { get; set; }
 
-            //[Required]
             [JsonPropertyName("warranty")]
             public int? Warranty { get; set; }
 
-            //[Required]
             [JsonPropertyName("color")]
             public string? Color { get; set; }
 
@@ -262,24 +189,10 @@ namespace asp.net.Controllers.Dashboard
                 return NotFound(response);
             }
 
-            if (request.Name != null)
-            {
-                item.Name = request.Name;
-            }
-            string jsonString = item.Specifications;
-            // Chuyển chuỗi JSON thành đối tượng C#
-            Specifications specifications = JsonConvert.DeserializeObject<Specifications>(jsonString);
-
-            // Thay đổi giá trị của trường "name" trong đối tượng C#
-            if (specifications.Cpu != null && request.Cpu.Name != null)
-            {
-                specifications.Cpu.Name = request.Cpu.Name;
-            }
-
-            // Chuyển đối tượng C# thành chuỗi JSON
-            string updatedJsonString = JsonConvert.SerializeObject(specifications);
-
-            //cpu.Cache = request.Cpu.Cores;
+            //if (request.Name != null)
+            //{
+            //    item.Name = request.Name;
+            //}
 
             item.Updated_at = DateTime.Now;
             await _context.SaveChangesAsync();
@@ -303,51 +216,50 @@ namespace asp.net.Controllers.Dashboard
                     {
                         cpu = new
                         {
-                            name = updatedJsonString
-                            //cores = cpu.Cores,
-                            //    threads = request.Cpu.Threads,
-                            //    base_clock = request.Cpu.BaseClock,
-                            //    turbo_clock = request.Cpu.TurboClock,
-                            //    cache = request.Cpu.Cache
-                            //},
-                            //ram = new
-                            //{
-                            //    capacity = request.Ram.Capacity,
-                            //    type = request.Ram.Type,
-                            //    frequency = request.Ram.Frequency,
-                            //},
-                            //storage = new
-                            //{
-                            //    drive = request.Storage.Drive.ToString(),
-                            //    capacity = request.Storage.Capacity.ToString(),
-                            //    type = request.Storage.Type.ToString(),
-                            //},
-                            //display = new
-                            //{
-                            //    size = request.Display.Size.ToString(),
-                            //    resolution = request.Display.Resolution.ToString(),
-                            //    technology = request.Display.Technology.ToString(),
-                            //    refresh_rate = request.Display.RefreshRate.ToString(),
-                            //    touch = request.Display.Touch.ToString(),
-                            //},
-                            //gpu = new
-                            //{
-                            //    name = request.Gpu.Name.ToString(),
-                            //    memory = request.Gpu.Memory.ToString(),
-                            //    type = request.Gpu.Type.ToString(),
-                            //    frequency = request.Gpu.Frequency.ToString(),
-                            //},
-                            //ports = request.Ports.ToString(),
-                            //keyboard = request.Keyboard.ToString(),
-                            //touchpad = request.Touchpad.ToString(),
-                            //webcam = request.Webcam.ToString(),
-                            //battery = request.Battery.ToString(),
-                            //weight = request.Weight.ToString(),
-                            //os = request.Os.ToString(),
-                            //warranty = request.Warranty.ToString(),
-                            //color = request.Color.ToString(),
+                            name = request.Cpu.Name,
+                            cores = request.Cpu.Cores,
+                            threads = request.Cpu.Threads,
+                            base_clock = request.Cpu.BaseClock,
+                            turbo_clock = request.Cpu.TurboClock,
+                            cache = request.Cpu.Cache
                         },
-                    }
+                        ram = new
+                        {
+                            capacity = request.Ram.Capacity,
+                            type = request.Ram.Type,
+                            frequency = request.Ram.Frequency,
+                        },
+                        storage = new
+                        {
+                            drive = request.Storage.Drive.ToString(),
+                            capacity = request.Storage.Capacity.ToString(),
+                            type = request.Storage.Type.ToString(),
+                        },
+                        display = new
+                        {
+                            size = request.Display.Size.ToString(),
+                            resolution = request.Display.Resolution.ToString(),
+                            technology = request.Display.Technology.ToString(),
+                            refresh_rate = request.Display.RefreshRate.ToString(),
+                            touch = request.Display.Touch.ToString(),
+                        },
+                        gpu = new
+                        {
+                            name = request.Gpu.Name.ToString(),
+                            memory = request.Gpu.Memory.ToString(),
+                            type = request.Gpu.Type.ToString(),
+                            frequency = request.Gpu.Frequency.ToString(),
+                        },
+                        ports = request.Ports.ToString(),
+                        keyboard = request.Keyboard.ToString(),
+                        touchpad = request.Touchpad.ToString(),
+                        webcam = request.Webcam.ToString(),
+                        battery = request.Battery.ToString(),
+                        weight = request.Weight.ToString(),
+                        os = request.Os.ToString(),
+                        warranty = request.Warranty.ToString(),
+                        color = request.Color.ToString(),
+                    },
                 }
                     //state = item.State,
                     //sold = item.OrderItems.Sum(oi => oi.Amount)
