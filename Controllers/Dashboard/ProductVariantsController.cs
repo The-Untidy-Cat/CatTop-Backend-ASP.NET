@@ -261,8 +261,6 @@ namespace asp.net.Controllers.Dashboard
                         color = request.Color.ToString(),
                     },
                 }
-                    //state = item.State,
-                    //sold = item.OrderItems.Sum(oi => oi.Amount)
             };
             return Ok(responseSuccess);
         }

@@ -223,7 +223,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 item.State = request.State;
             }
-            
+
 
             item.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
@@ -239,6 +239,25 @@ namespace asp.net.Controllers.Dashboard
                     item.Description,
                     item.Image,
                     item.State,
+                    variants = _context.ProductVariants.Where(v => v.ProductID == item.Id).Select(v => new
+                    {
+                        id = v.Id,
+                        name = v.Name,
+                        sku = v.SKU,
+                        standard_price = v.StandardPrice,
+                        sale_price = v.SalePrice,
+                        discount = v.Discount,
+                        state = v.State,
+                        sold = v.OrderItems.Select(oi => oi.Amount).Sum()
+                    }),
+
+                    brands = _context.Brands.Where(b => b.Id == item.BrandId).Select(brand => new
+                    {
+                        id = brand.Id,
+                        name = brand.Name,
+                        image = brand.Image,
+                        product_count = brand.Products.Count()
+                    })
                 }
             };
             return Ok(responseSuccess);
