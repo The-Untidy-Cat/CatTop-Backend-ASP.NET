@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -16,6 +17,18 @@ namespace asp.net.Controllers.Dashboard
         [Url]
         public string image { get; set; }
     }
+    public class UpdateBrandForm
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("image")]
+        public string Image { get; set; }
+
+        [JsonPropertyName("state")]
+        public string State { get; set; }
+
+    }
     [Route("v1/dashboard/brands")]
     [ApiController]
     public class BrandsController : ControllerBase
@@ -25,33 +38,6 @@ namespace asp.net.Controllers.Dashboard
         public BrandsController(DbCtx context)
         {
             _context = context;
-        }
-
-        public class UpdateBrandForm
-        {
-            [JsonPropertyName("name")]
-            public string Name { get; set; }
-
-            [JsonPropertyName("image")]
-            public string Image { get; set; }
-
-            [JsonPropertyName("state")]
-            public string State { get; set; }
-
-        }
-        public class NewBrandForm
-        {
-            [Required]
-            [JsonPropertyName("name")]
-            public string Name { get; set; }
-
-            [Required]
-            [JsonPropertyName("image")]
-            public string Image { get; set; }
-
-            [JsonPropertyName("state")]
-            public string State { get; set; }
-
         }
         // GET: api/Brands
         [HttpGet]
@@ -85,6 +71,10 @@ namespace asp.net.Controllers.Dashboard
                 }
             }
             var length = brands.Count();
+            var records = await brands
+                .Skip(request.offset * request.limit)
+                .Take(request.limit)
+                .ToListAsync();
             var response = new
             {
                 code = 200,
@@ -144,11 +134,18 @@ namespace asp.net.Controllers.Dashboard
             {
                 item.Image = request.Image;
             }
-
             if (request.State != null)
             {
                 item.State = request.State;
             }
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                code = 200,
+                message = "Success",
+                data = item
+            });
+        }
 
         // POST: api/Brands
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -175,25 +172,6 @@ namespace asp.net.Controllers.Dashboard
             });
         }
 
-        // DELETE: api/Brands/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBrand(int id)
-        {
-            if (_context.Brands == null)
-            {
-                return NotFound();
-            }
-            var brand = await _context.Brands.FindAsync(id);
-            if (brand == null)
-            {
-                return NotFound();
-            }
-
-            _context.Brands.Remove(brand);
-            await _context.SaveChangesAsync();
-
-            return Ok(responseSuccess);
-        }
         private bool BrandExists(int id)
         {
             return (_context.Brands?.Any(e => e.Id == id)).GetValueOrDefault();

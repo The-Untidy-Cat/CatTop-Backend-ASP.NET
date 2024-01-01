@@ -9,9 +9,59 @@ using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
+    public class UpdateProductForm
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("slug")]
+        public string Slug { get; set; }
+
+        [JsonPropertyName("image")]
+        public string Image { get; set; }
+
+        [JsonPropertyName("brand_id")]
+        public int BrandId { get; set; }
+
+        [JsonPropertyName("state")]
+        public string State { get; set; }
+
+    }
+    public class NewProductForm
+    {
+        [Required]
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [Required]
+        [JsonPropertyName("image")]
+        public string Image { get; set; }
+
+        [Required]
+        [JsonPropertyName("slug")]
+        public string Slug { get; set; }
+
+        [Required]
+        [JsonPropertyName("brand")]
+        public int BrandId { get; set; }
+
+        [JsonPropertyName("state")]
+        public string State { get; set; }
+
+    }
+    public class SearchDateForStatistic
+    {
+        [JsonPropertyName("start_date")]
+        [DataType(DataType.Date)]
+        public string? start_date { get; set; }
+
+        [JsonPropertyName("end_date")]
+        [DataType(DataType.Date)]
+        public string? end_date { get; set; }
+    }
+
     [Route("v1/dashboard/products")]
     [ApiController]
-
     public class ProductsController : ControllerBase
     {
         private readonly DbCtx _context;
@@ -20,56 +70,7 @@ namespace asp.net.Controllers.Dashboard
         {
             _context = context;
         }
-        public class UpdateProductForm
-        {
-            [JsonPropertyName("name")]
-            public string Name { get; set; }
 
-            [JsonPropertyName("slug")]
-            public string Slug { get; set; }
-
-            [JsonPropertyName("image")]
-            public string Image { get; set; }
-
-            [JsonPropertyName("brand_id")]
-            public int BrandId { get; set; }
-
-            [JsonPropertyName("state")]
-            public string State { get; set; }
-
-        }
-        public class NewProductForm
-        {
-            [Required]
-            [JsonPropertyName("name")]
-            public string Name { get; set; }
-
-            [Required]
-            [JsonPropertyName("image")]
-            public string Image { get; set; }
-
-            [Required]
-            [JsonPropertyName("slug")]
-            public string Slug { get; set; }
-
-            [Required]
-            [JsonPropertyName("brand")]
-            public int BrandId { get; set; }
-
-            [JsonPropertyName("state")]
-            public string State { get; set; }
-
-        }
-        public class SearchDateForStatistic
-        {
-            [JsonPropertyName("start_date")]
-            [DataType(DataType.Date)]
-            public string? start_date { get; set; }
-
-            [JsonPropertyName("end_date")]
-            [DataType(DataType.Date)]
-            public string? end_date { get; set; }
-        }
         // GET: api/Products
         [HttpGet]
 
@@ -137,58 +138,51 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
+            var product = await _context.Products.Include(p => p.ProductVariants)
+                        .Where(p => p.Id == id).Select(obj => new
+                        {
+                            id = obj.Id,
+                            name = obj.Name,
+                            slug = obj.Slug,
+                            description = obj.Description,
+                            image = obj.Image,
+                            state = obj.State,
+                            variants = new
+                            {
+                                id = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Id,
+                                name = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Name,
+                                sku = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SKU,
+                                standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
+                                sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
+                                discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
+                                state = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().State,
+                                sold = obj.ProductVariants.Select(v => v.OrderItems.Sum(v => v.Amount)).FirstOrDefault()
+                            },
+                            brand = new
+                            {
+                                id = obj.Brand.Id,
+                                name = obj.Brand.Name,
+                                image = obj.Brand.Image,
+                                product_count = obj.Brand.Products.Count()
+                            }
+                        })
+            .FirstOrDefaultAsync();
+            if (product == null)
             {
-                var query = _context.Products.Include(p => p.ProductVariants)
-                            .Where(p => p.Id == id)
-                            .Where(q => q.State == ProductState.Published.ToString())
-                            .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
-                var products = await query
-                .Select(obj => new
+                return NotFound(new
                 {
-                    id = obj.Id,
-                    name = obj.Name,
-                    slug = obj.Slug,
-                    description = obj.Description,
-                    image = obj.Image,
-                    state = obj.State,
-                    variants = new {
-                        id = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Id,
-                        name = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Name,
-                        sku = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SKU,
-                        standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
-                        sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
-                        discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
-                        state = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().State,
-                        sold = obj.ProductVariants.Select(v => v.OrderItems.Sum(v => v.Amount)).FirstOrDefault()
-                    },
-                     brands = new
-                    {
-                        id = obj.Brand.Id,
-                        name = obj.Brand.Name,
-                        image = obj.Brand.Image,
-                        product_count = obj.Brand.Products.Count()
-                    }
-                })
-                .ToListAsync();
-                if (products == null)
-                {
-                    return NotFound(new
-                    {
-                        code = 404,
-                        message = "Không tìm thấy đơn hàng"
-                    });
-                }
-                var response = new
-                {
-                    code = 200,
-                    data = new
-                    {
-                        products
-                    }
-                };
-
-                return Ok(response);
+                    code = 404,
+                    message = "Không tìm thấy đơn hàng"
+                });
             }
+            var response = new
+            {
+                code = 200,
+                data = product
+            };
+
+            return Ok(response);
+
         }
 
         // PUT: api/Products/5
@@ -241,7 +235,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 item.State = request.State;
             }
-            
+
 
             item.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
