@@ -31,8 +31,6 @@ namespace asp.net.Controllers.Dashboard
                     id = brand.Id,
                     name = brand.Name,
                     state = brand.State,
-                    description = brand.Description,
-                    slug = brand.Slug,
                     image = brand.Image,
                 });
             //.ToListAsync();
