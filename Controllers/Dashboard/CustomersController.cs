@@ -228,15 +228,15 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return NotFound(response);
             }
-            if(request.FirstName != null)
+            if (request.FirstName != null)
             {
                 item.FirstName = request.FirstName;
             }
-            if(request.LastName != null)
+            if (request.LastName != null)
             {
                 item.LastName = request.LastName;
             }
-            if(request.Email != null)
+            if (request.Email != null)
             {
                 item.Email = request.Email;
             }
@@ -244,15 +244,15 @@ namespace asp.net.Controllers.Dashboard
             {
                 item.PhoneNumber = request.PhoneNumber;
             }
-            if(request.DoB != null)
+            if (request.DoB != null)
             {
                 item.DateOfBirth = request.DoB;
             }
-            if(request.Gender != null)
+            if (request.Gender != null)
             {
                 item.Gender = request.Gender;
             }
-            if(request.State != null)
+            if (request.State != null)
             {
                 item.State = request.State;
             }
@@ -260,31 +260,35 @@ namespace asp.net.Controllers.Dashboard
             item.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            var responseSuccess = new
+            var customer = await _context.Customers
+                .Where(c => c.Id == id)
+                .Select(c => new
+                {
+                    id = c.Id,
+                    first_name = c.FirstName,
+                    last_name = c.LastName,
+                    email = c.Email,
+                    phone_number = c.PhoneNumber,
+                    date_of_birth = c.DateOfBirth,
+                    gender = c.Gender,
+                    state = c.State,
+                    user_id = c.UserId,
+                    created_at = c.CreatedAt,
+                    updated_at = c.UpdatedAt,
+                    order_count = c.Orders.Where(o => o.CustomerId == id).Select(o => o.Id).Count(),
+                }).ToListAsync();
+
+            var responsesuccess = new
             {
                 code = 200,
                 message = "messages.update.success",
                 data = new
                 {
-                    id = item.Id,
-                    first_name = item.FirstName,
-                    last_name = item.LastName,
-                    email = item.Email,
-                    phone_number = item.PhoneNumber,
-                    date_of_birth = item.DateOfBirth,
-                    gender = item.Gender,
-                    state = item.State,
-                    user_id = item.UserId,
-                    email_verified_at = item.Email,
-                    created_at = item.CreatedAt,
-                    updated_at = item.UpdatedAt,
-                    order_count = item.Orders
-                                .Where(o => o.CustomerId == id)
-                                .Select(o => o.Id)
-                                .Count()
+                    customer,
                 }
             };
-            return Ok(responseSuccess);
+
+            return Ok(responsesuccess);
         }
         [HttpPost]
         public async Task<ActionResult<IEnumerable<Customer>>> CreateCustomer([FromBody] NewCustomerForm request)
