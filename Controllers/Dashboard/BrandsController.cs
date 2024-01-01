@@ -27,6 +27,32 @@ namespace asp.net.Controllers.Dashboard
             _context = context;
         }
 
+        public class UpdateBrandForm
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
+
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
+        public class NewBrandForm
+        {
+            [Required]
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
+
+            [Required]
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
         // GET: api/Brands
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Brand>>> GetBrands([FromQuery] SearchForm request)
@@ -59,11 +85,6 @@ namespace asp.net.Controllers.Dashboard
                 }
             }
             var length = brands.Count();
-            var records =
-                await brands
-                .Skip(request.offset)
-                .Take(request.limit)
-                .ToListAsync();
             var response = new
             {
                 code = 200,
@@ -101,35 +122,33 @@ namespace asp.net.Controllers.Dashboard
         }
 
         // PUT: api/Brands/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBrand(int id, Brand brand)
+        public async Task<ActionResult> UpdateBrand(int id, [FromBody] UpdateBrandForm request)
         {
-            if (id != brand.Id)
+            var item = await _context.Brands
+                .Where(b => b.Id == id).FirstOrDefaultAsync();
+            if (item == null)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(brand).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BrandExists(id))
+                var response = new
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                    code = 404,
+                    message = "Không tìm thấy thương hiệu"
+                };
+                return NotFound(response);
+            }
+            if (request.Name != null)
+            {
+                item.Name = request.Name;
+            }
+            if (request.Image != null)
+            {
+                item.Image = request.Image;
             }
 
-            return NoContent();
-        }
+            if (request.State != null)
+            {
+                item.State = request.State;
+            }
 
         // POST: api/Brands
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -173,12 +192,12 @@ namespace asp.net.Controllers.Dashboard
             _context.Brands.Remove(brand);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(responseSuccess);
         }
-
         private bool BrandExists(int id)
         {
             return (_context.Brands?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
     }
 }

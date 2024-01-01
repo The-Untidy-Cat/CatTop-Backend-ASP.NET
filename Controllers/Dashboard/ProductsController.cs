@@ -2,6 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -16,7 +20,56 @@ namespace asp.net.Controllers.Dashboard
         {
             _context = context;
         }
+        public class UpdateProductForm
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
 
+            [JsonPropertyName("slug")]
+            public string Slug { get; set; }
+
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [JsonPropertyName("brand_id")]
+            public int BrandId { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
+        public class NewProductForm
+        {
+            [Required]
+            [JsonPropertyName("name")]
+            public string Name { get; set; }
+
+            [Required]
+            [JsonPropertyName("image")]
+            public string Image { get; set; }
+
+            [Required]
+            [JsonPropertyName("slug")]
+            public string Slug { get; set; }
+
+            [Required]
+            [JsonPropertyName("brand")]
+            public int BrandId { get; set; }
+
+            [JsonPropertyName("state")]
+            public string State { get; set; }
+
+        }
+        public class SearchDateForStatistic
+        {
+            [JsonPropertyName("start_date")]
+            [DataType(DataType.Date)]
+            public string? start_date { get; set; }
+
+            [JsonPropertyName("end_date")]
+            [DataType(DataType.Date)]
+            public string? end_date { get; set; }
+        }
         // GET: api/Products
         [HttpGet]
 
@@ -84,85 +137,232 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
             {
-                return NotFound();
-            }
+                var query = _context.Products.Include(p => p.ProductVariants)
+                            .Where(p => p.Id == id)
+                            .Where(q => q.State == ProductState.Published.ToString())
+                            .Where(q => q.ProductVariants.Any(v => v.State == VariantState.Published.ToString()));
+                var products = await query
+                .Select(obj => new
+                {
+                    id = obj.Id,
+                    name = obj.Name,
+                    slug = obj.Slug,
+                    description = obj.Description,
+                    image = obj.Image,
+                    state = obj.State,
+                    variants = new {
+                        id = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Id,
+                        name = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Name,
+                        sku = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SKU,
+                        standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
+                        sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
+                        discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
+                        state = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().State,
+                        sold = obj.ProductVariants.Select(v => v.OrderItems.Sum(v => v.Amount)).FirstOrDefault()
+                    },
+                     brands = new
+                    {
+                        id = obj.Brand.Id,
+                        name = obj.Brand.Name,
+                        image = obj.Brand.Image,
+                        product_count = obj.Brand.Products.Count()
+                    }
+                })
+                .ToListAsync();
+                if (products == null)
+                {
+                    return NotFound(new
+                    {
+                        code = 404,
+                        message = "Không tìm thấy đơn hàng"
+                    });
+                }
+                var response = new
+                {
+                    code = 200,
+                    data = new
+                    {
+                        products
+                    }
+                };
 
-            return product;
+                return Ok(response);
+            }
         }
 
         // PUT: api/Products/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(long id, Product product)
+        public async Task<IActionResult> PutProduct(int id, [FromBody] UpdateProductForm request)
         {
-            if (id != product.Id)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(product).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProductExists(id))
+                var response = new
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                    code = 400,
+                    message = "Cập nhật sản phẩm thất bại",
+                    data = new
+                    {
+                        errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                    }
+                };
+                return BadRequest(response);
             }
+            var item = await _context.Products
+                    .Where(p => p.Id == id)
+                    .FirstOrDefaultAsync();
+            if (item == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy sản phẩm"
+                };
+                return NotFound(response);
+            }
+            if (request.Name != null)
+            {
+                item.Name = request.Name;
+            }
+            if (request.Slug != null)
+            {
+                item.Slug = request.Slug;
+            }
+            if (request.BrandId != 0)
+            {
+                item.BrandId = request.BrandId;
+            }
+            if (request.Image != null)
+            {
+                item.Image = request.Image;
+            }
+            if (request.State != null)
+            {
+                item.State = request.State;
+            }
+            
 
-            return NoContent();
+            item.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Cập nhật sản phẩm thành công",
+                data = new
+                {
+                    item.Id,
+                    item.Name,
+                    item.Slug,
+                    item.Description,
+                    item.Image,
+                    item.State,
+                }
+            };
+            return Ok(responseSuccess);
         }
 
         // POST: api/Products
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<IEnumerable<Product>>> CreateProduct([FromBody] NewProductForm request)
         {
-            if (_context.Products == null)
+
+            var product = new Product
             {
-                return Problem("Entity set 'DbCtx.Products'  is null.");
-            }
-            _context.Products.Add(product);
+                Name = request.Name,
+                Slug = request.Slug,
+                Image = request.Image,
+                State = ProductState.Published.ToString(),
+                CreatedAt = DateTime.Now,
+                BrandId = request.BrandId,
+
+            };
+            await _context.Products.AddAsync(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
-        }
-
-        // DELETE: api/Products/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(long id)
-        {
-            if (_context.Products == null)
+            var responseSuccess = new
             {
-                return NotFound();
-            }
-            var product = await _context.Products.FindAsync(id);
-            if (product == null)
-            {
-                return NotFound();
-            }
+                code = 200,
+                message = "Tạo sản phẩm thành công",
+                data = new
+                {
+                    id = product.Id,
+                    name = product.Name,
+                    slug = product.Slug,
+                    image = product.Image,
+                    state = product.State,
+                    brand_id = product.BrandId,
+                }
+            };
 
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return Ok(responseSuccess);
         }
-
-        private bool ProductExists(long id)
+        [HttpGet("statistics")]
+        public async Task<ActionResult<IEnumerable<Product>>> GetStatisticsProducts([FromQuery] SearchDateForStatistic request)
         {
-            return (_context.Products?.Any(e => e.Id == id)).GetValueOrDefault();
+
+            var productsStatistic = new List<object>();
+            var query = from v in _context.ProductVariants
+                        join p in _context.Products on v.ProductID equals p.Id
+                        join oi in _context.OrderItems on v.Id equals oi.VariantId
+                        join od in _context.Orders on oi.OrderId equals od.Id
+                        group new { p, v, oi, od } by new
+                        {
+                            p.Id,
+                            p.Name,
+                            VariantName = v.Name,
+                            v.Discount,
+                            v.SalePrice,
+                            v.StandardPrice
+                        } into obj
+                        orderby obj.Sum(x => x.oi.Total) descending
+                        select new
+                        {
+                            ProductId = obj.Key.Id,
+                            ProductName = obj.Key.Name,
+                            VariantName = obj.Key.VariantName,
+                            OrderCount = obj.Count(),
+                            TotalAmount = obj.Sum(x => x.oi.Amount),
+                            TotalSum = obj.Sum(x => x.oi.Total),
+                            Discount = obj.Key.Discount,
+                            SalePrice = obj.Key.SalePrice,
+                            StandardPrice = obj.Key.StandardPrice
+                        };
+            var result = query.ToList();
+
+
+            if (request.start_date != null && request.end_date != null)
+            {
+
+                foreach (var total in result)
+                {
+                    var statistic = new
+                    {
+                        id = total.ProductId,
+                        product_name = total.ProductName,
+                        variant_name = total.VariantName,
+                        total_order = total.OrderCount,
+                        total_amount = total.TotalAmount,
+                        total_sale = total.TotalSum,
+                        discount = total.Discount,
+                        sale_price = total.SalePrice,
+                        standard_price = total.StandardPrice
+                    };
+                    productsStatistic.Add(statistic);
+                }
+            }
+
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Thống kê sản phẩm thành công",
+                data = new
+                {
+                    productsStatistic,
+                }
+            };
+            return Ok(responseSuccess);
         }
     }
 }

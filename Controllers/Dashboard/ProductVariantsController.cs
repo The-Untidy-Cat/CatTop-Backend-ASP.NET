@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Linq;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -17,67 +21,70 @@ namespace asp.net.Controllers.Dashboard
             _context = context;
         }
 
-        // GET: api/ProductVariants
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductVariants>>> GetProductVariants([FromQuery] SearchForm request)
+        //public class Specifications
+        //{
+        //    public Cpu? Cpu { get; set; }
+        //    public Ram? Ram { get; set; }
+        //    public Storage? Storage { get; set; }
+        //    public Display? Display { get; set; }
+        //    public Gpu? Gpu { get; set; }
+        //    public string? Ports { get; set; }
+        //    public string? Keyboard { get; set; }
+        //    public bool? Touchpad { get; set; }
+        //    public bool? Webcam { get; set; }
+        //    public int? Battery { get; set; }
+        //    public double? Weight { get; set; }
+        //    public string? Os { get; set; }
+        //    public int? Warranty { get; set; }
+        //    public string? Color { get; set; }
+        //}
+        public class UpdateVariantForm
         {
-            if (_context.ProductVariants == null)
-            {
-                return NotFound();
-            }
-            var variants = _context.ProductVariants
-                .Select(prod => new
-                {
-                    id = prod.Id,
-                    name = prod.Name,
-                    state = prod.State,
-                    description = prod.Description,
-                    sku = prod.SKU,
-                    created_at = prod.Created_at,
-                    prod_id = prod.ProductID,
-                    standard_price = prod.StandardPrice,
-                    tax_rate = prod.TaxRate,
-                    discount = prod.Discount,
-                    extra_fee = prod.ExtraFee,
-                    cost_price = prod.CostPrice,
-                    sale_price = prod.SalePrice
-                });
-            if (request.filter != null && request.keyword != null)
-            {
-                switch (request.filter)
-                {
-                    case "name":
-                        variants = variants.Where(prod => prod.name.Contains(request.keyword));
-                        break;
-                    case "state":
-                        variants = variants.Where(prod => prod.state.Contains(request.keyword));
-                        break;
-                    case "sku":
-                        variants = variants.Where(prod => prod.sku.Contains(request.keyword));
-                        break;
-                    default:
-                        break;
-                }
-            }
-            var length = variants.Count();
-            var records =
-                await variants
-                .Skip(request.offset)
-                .Take(request.limit)
-                .ToListAsync();
-            var response = new
-            {
-                code = 200,
-                data = new
-                {
-                    records,
-                    request.offset,
-                    request.limit,
-                    length,
-                }
-            };
-            return Ok(response);
-            //return await _context.Products.ToListAsync();
+            //[JsonPropertyName("name")]
+            //public string? Name { get; set; }
+
+            [JsonPropertyName("cpu")]
+            public Cpu? Cpu { get; set; }
+
+            [JsonPropertyName("ram")]
+            public Ram? Ram { get; set; }
+
+            [JsonPropertyName("storage")]
+            public Storage? Storage { get; set; }
+
+            [JsonPropertyName("display")]
+            public Display? Display { get; set; }
+
+            [JsonPropertyName("gpu")]
+            public Gpu? Gpu { get; set; }
+
+            [JsonPropertyName("ports")]
+            public string? Ports { get; set; }
+
+            [JsonPropertyName("keyboard")]
+            public string? Keyboard { get; set; }
+
+            [JsonPropertyName("touchpad")]
+            public bool? Touchpad { get; set; }
+
+            [JsonPropertyName("webcam")]
+            public bool? Webcam { get; set; }
+
+            [JsonPropertyName("battery")]
+            public int? Battery { get; set; }
+
+            [JsonPropertyName("weight")]
+            public double? Weight { get; set; }
+
+            [JsonPropertyName("os")]
+            public string? Os { get; set; }
+
+            [JsonPropertyName("warranty")]
+            public int? Warranty { get; set; }
+
+            [JsonPropertyName("color")]
+            public string? Color { get; set; }
+
         }
 
         // GET: api/ProductVariants/5
@@ -88,85 +95,176 @@ namespace asp.net.Controllers.Dashboard
             {
                 return NotFound();
             }
-            var productVariants = await _context.ProductVariants.FindAsync(id);
+            var variants = _context.ProductVariants
+                .Where(v => v.Id == id)
+                .Select(v => new
+                {
+                    id = v.Id,
+                    SKU = v.SKU,
+                    image = v.Image,
+                    name = v.Name,
+                    standard_price = v.StandardPrice,
+                    tax_rate = v.TaxRate,
+                    discount = v.Discount,
+                    extra_fee = v.ExtraFee,
+                    cost_price = v.CostPrice,
+                    specification = new
+                    {
+                        cpu = new
+                        {
+                            name = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.Name.ToString(),
+                            cores = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.Cores),
+                            threads = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.Threads),
+                            base_clock = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.BaseClock),
+                            turbo_clock = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.TurboClock),
+                            cache = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Cpu.Cache),
+                        },
+                        ram = new
+                        {
+                            capacity = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.Capacity),
+                            type = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.Type.ToString(),
+                            frequency = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.Frequency.ToString()),
+                        },
+                        storage = new
+                        {
+                            drive = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.Drive.ToString(),
+                            capacity = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.Capacity.ToString(),
+                            type = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.Type.ToString(),
+                        },
+                        display = new
+                        {
+                            size = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.Size.ToString(),
+                            resolution = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.Resolution.ToString(),
+                            technology = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.Technology.ToString(),
+                            refresh_rate = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.RefreshRate),
+                            touch = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.Touch.ToString(),
+                        },
+                        gpu = new
+                        {
+                            name = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.Name.ToString(),
+                            memory = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.Memory.ToString(),
+                            type = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.Type.ToString(),
+                            frequency = Convert.ToInt32(JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.Frequency),
+                        },
+                        ports = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ports,
+                        keyboard = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Keyboard,
+                        touchpad = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Touchpad,
+                        webcam = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Webcam,
+                        battery = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Battery,
+                        weight = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Weight,
+                        os = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Os,
+                        warranty = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Warranty,
+                        color = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Color,
+                    },
+                    state = v.State,
+                    sold = v.OrderItems.Sum(oi => oi.Amount)
 
-            if (productVariants == null)
+                });
+
+
+            var response = new
             {
-                return NotFound();
-            }
-
-            return productVariants;
+                code = 200,
+                data = new
+                {
+                    variants
+                }
+            };
+            return Ok(response);
         }
 
-        // PUT: api/ProductVariants/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProductVariants(int id, ProductVariants productVariants)
+        public async Task<IActionResult> PutProductVariant(int id, [FromBody] UpdateVariantForm request)
         {
-            if (id != productVariants.Id)
+            var item = await _context.ProductVariants
+                    .Where(p => p.Id == id)
+                    .FirstOrDefaultAsync();
+            if (item == null)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(productVariants).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProductVariantsExists(id))
+                var response = new
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                    code = 404,
+                    message = "Không tìm thấy biến thể"
+                };
+                return NotFound(response);
             }
 
-            return NoContent();
-        }
+            //if (request.Name != null)
+            //{
+            //    item.Name = request.Name;
+            //}
 
-        // POST: api/ProductVariants
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<ProductVariants>> PostProductVariants(ProductVariants productVariants)
-        {
-            if (_context.ProductVariants == null)
-            {
-                return Problem("Entity set 'DbCtx.ProductVariants'  is null.");
-            }
-            _context.ProductVariants.Add(productVariants);
+            item.Updated_at = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProductVariants", new { id = productVariants.Id }, productVariants);
-        }
-
-        // DELETE: api/ProductVariants/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProductVariants(int id)
-        {
-            if (_context.ProductVariants == null)
+            var responseSuccess = new
             {
-                return NotFound();
-            }
-            var productVariants = await _context.ProductVariants.FindAsync(id);
-            if (productVariants == null)
-            {
-                return NotFound();
-            }
-
-            _context.ProductVariants.Remove(productVariants);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ProductVariantsExists(int id)
-        {
-            return (_context.ProductVariants?.Any(e => e.Id == id)).GetValueOrDefault();
+                code = 200,
+                message = "Cập nhật biến thể thành công",
+                data = new
+                {
+                    id = item.Id,
+                    SKU = item.SKU,
+                    image = item.Image,
+                    name = item.Name,
+                    standard_price = item.StandardPrice,
+                    tax_rate = item.TaxRate,
+                    discount = item.Discount,
+                    extra_fee = item.ExtraFee,
+                    cost_price = item.CostPrice,
+                    specification = new
+                    {
+                        cpu = new
+                        {
+                            name = request.Cpu.Name,
+                            cores = request.Cpu.Cores,
+                            threads = request.Cpu.Threads,
+                            base_clock = request.Cpu.BaseClock,
+                            turbo_clock = request.Cpu.TurboClock,
+                            cache = request.Cpu.Cache
+                        },
+                        ram = new
+                        {
+                            capacity = request.Ram.Capacity,
+                            type = request.Ram.Type,
+                            frequency = request.Ram.Frequency,
+                        },
+                        storage = new
+                        {
+                            drive = request.Storage.Drive.ToString(),
+                            capacity = request.Storage.Capacity.ToString(),
+                            type = request.Storage.Type.ToString(),
+                        },
+                        display = new
+                        {
+                            size = request.Display.Size.ToString(),
+                            resolution = request.Display.Resolution.ToString(),
+                            technology = request.Display.Technology.ToString(),
+                            refresh_rate = request.Display.RefreshRate.ToString(),
+                            touch = request.Display.Touch.ToString(),
+                        },
+                        gpu = new
+                        {
+                            name = request.Gpu.Name.ToString(),
+                            memory = request.Gpu.Memory.ToString(),
+                            type = request.Gpu.Type.ToString(),
+                            frequency = request.Gpu.Frequency.ToString(),
+                        },
+                        ports = request.Ports.ToString(),
+                        keyboard = request.Keyboard.ToString(),
+                        touchpad = request.Touchpad.ToString(),
+                        webcam = request.Webcam.ToString(),
+                        battery = request.Battery.ToString(),
+                        weight = request.Weight.ToString(),
+                        os = request.Os.ToString(),
+                        warranty = request.Warranty.ToString(),
+                        color = request.Color.ToString(),
+                    },
+                }
+                    //state = item.State,
+                    //sold = item.OrderItems.Sum(oi => oi.Amount)
+            };
+            return Ok(responseSuccess);
         }
     }
 }

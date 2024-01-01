@@ -40,11 +40,12 @@ namespace asp.net.Models
         [Required]
         [Column("state")]
         [StringLength(255)]
-        [DefaultValue("active")]
+        [EnumDataType(typeof(BrandState))]
         public string? State { get; set; }
 
         [Column("image")]
         [StringLength(255)]
+        [Url]
         public string? Image { get; set; }
 
         [Column("parent_id")]
@@ -57,7 +58,7 @@ namespace asp.net.Models
         public DateTime? CreatedAt { get; set; }
 
         [Column("updated_at")]
-        public DateTime? UpdateAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         public ICollection<Product>? Products { get; set; }
     }
