@@ -3,9 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
 using asp.net.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace asp.net.Controllers.Dashboard
 {
+    public class NewBrandForm
+    {
+        [Required]
+        public string? name { get; set; }
+
+        [Required]
+        [Url]
+        public string image { get; set; }
+    }
     [Route("v1/dashboard/brands")]
     [ApiController]
     public class BrandsController : ControllerBase
@@ -72,10 +82,10 @@ namespace asp.net.Controllers.Dashboard
         [HttpGet("{id}")]
         public async Task<ActionResult<Brand>> GetBrand(int id)
         {
-          if (_context.Brands == null)
-          {
-              return NotFound();
-          }
+            if (_context.Brands == null)
+            {
+                return NotFound();
+            }
             var brand = await _context.Brands.FindAsync(id);
 
             if (brand == null)
@@ -83,7 +93,11 @@ namespace asp.net.Controllers.Dashboard
                 return NotFound();
             }
 
-            return brand;
+            return Ok(new
+            {
+                code = 200,
+                data = brand
+            });
         }
 
         // PUT: api/Brands/5
@@ -120,16 +134,26 @@ namespace asp.net.Controllers.Dashboard
         // POST: api/Brands
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Brand>> PostBrand(Brand brand)
+        public async Task<ActionResult<Brand>> PostBrand([FromBody] NewBrandForm form)
         {
-          if (_context.Brands == null)
-          {
-              return Problem("Entity set 'DbCtx.Brands'  is null.");
-          }
+            if (_context.Brands == null)
+            {
+                return Problem("Entity set 'DbCtx.Brands'  is null.");
+            }
+            var brand = new Brand
+            {
+                Name = form.name,
+                Image = form.image,
+                State = BrandState.Active.ToString(),
+            };
             _context.Brands.Add(brand);
             await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetBrand", new { id = brand.Id }, brand);
+            return Ok(new
+            {
+                code = 200,
+                message = "Success",
+                data = brand
+            });
         }
 
         // DELETE: api/Brands/5

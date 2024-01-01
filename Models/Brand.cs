@@ -1,6 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace asp.net.Models
 {
@@ -26,9 +28,9 @@ namespace asp.net.Models
         [StringLength(255)]
         public string? Name { get; set; }
 
-        [Required]
         [Column("slug")]
         [StringLength(255)]
+        [JsonPropertyName("slug")]
         public string? Slug { get; set; }
 
         [Column("description")]
@@ -38,6 +40,7 @@ namespace asp.net.Models
         [Required]
         [Column("state")]
         [StringLength(255)]
+        [DefaultValue("active")]
         public string? State { get; set; }
 
         [Column("image")]
