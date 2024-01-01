@@ -73,7 +73,8 @@ namespace asp.net.Data
             });
             modelBuilder.Entity<Brand>(entity =>
             {
-                entity.HasIndex(e => e.Id).IsUnique();
+                entity.Property(e => e.ParentId).IsRequired(false);
+                entity.HasMany(e => e.Products).WithOne(e => e.Brand).HasForeignKey(e => e.BrandId);
             });
             modelBuilder.Entity<Product>(entity =>
             {

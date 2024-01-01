@@ -42,12 +42,8 @@ namespace asp.net.Controllers.Dashboard
         public string Slug { get; set; }
 
         [Required]
-        [JsonPropertyName("brand")]
+        [JsonPropertyName("brand_id")]
         public int BrandId { get; set; }
-
-        [JsonPropertyName("state")]
-        public string State { get; set; }
-
     }
     public class SearchDateForStatistic
     {
@@ -147,17 +143,17 @@ namespace asp.net.Controllers.Dashboard
                             description = obj.Description,
                             image = obj.Image,
                             state = obj.State,
-                            variants = new
+                            variants = obj.ProductVariants.Select(v => new
                             {
-                                id = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Id,
-                                name = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Name,
-                                sku = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SKU,
-                                standard_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().StandardPrice,
-                                sale_price = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().SalePrice,
-                                discount = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().Discount,
-                                state = obj.ProductVariants.Where(v => v.ProductID == obj.Id).FirstOrDefault().State,
-                                sold = obj.ProductVariants.Select(v => v.OrderItems.Sum(v => v.Amount)).FirstOrDefault()
-                            },
+                                id = v.Id,
+                                name = v.Name,
+                                sku = v.SKU,
+                                standard_price = v.StandardPrice,
+                                sale_price = v.SalePrice,
+                                discount = v.Discount,
+                                state = v.State,
+                                sold = v.OrderItems.Select(oi => oi.Amount).Sum()
+                            }).ToList(),
                             brand = new
                             {
                                 id = obj.Brand.Id,
@@ -280,7 +276,23 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost]
         public async Task<ActionResult<IEnumerable<Product>>> CreateProduct([FromBody] NewProductForm request)
         {
+            var exitstedProduct = await _context.Products
+                .Where(p => p.Name == request.Slug)
+                .FirstOrDefaultAsync();
+            if (exitstedProduct != null)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Tạo sản phẩm thất bại",
+                    errors = new
+                    {
+                        slug = new string[] { "Slug sản phẩm đã tồn tại" }
+                    }
 
+                };
+                return BadRequest(response);
+            }
             var product = new Product
             {
                 Name = request.Name,
@@ -289,11 +301,9 @@ namespace asp.net.Controllers.Dashboard
                 State = ProductState.Published.ToString(),
                 CreatedAt = DateTime.Now,
                 BrandId = request.BrandId,
-
             };
-            await _context.Products.AddAsync(product);
+            _context.Products.Add(product);
             await _context.SaveChangesAsync();
-
             var responseSuccess = new
             {
                 code = 200,

@@ -52,7 +52,6 @@ namespace asp.net.Models
         public DateTime? UpdatedAt { get; set; }
 
         [Column("brand_id")]
-        [ForeignKey("Brand")]
         public int BrandId { get; set; }
         public Brand? Brand { get; set; }
         public ICollection<ProductVariants>? ProductVariants { get; set; }
