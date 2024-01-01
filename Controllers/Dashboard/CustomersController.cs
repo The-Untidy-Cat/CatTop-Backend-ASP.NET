@@ -293,6 +293,33 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost]
         public async Task<ActionResult<IEnumerable<Customer>>> CreateCustomer([FromBody] NewCustomerForm request)
         {
+            var user = new User
+            {
+                Username = request.PhoneNumber,
+                Password = "12345678",
+                State = "active",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            };
+
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            var userID = await _context.Users
+                        .Where(u => u.Username == user.Username)
+                        .Select(u => u.Id).ToListAsync();
+
+            var userRole = new UserRole
+            {
+                UserId = userID.First(),
+                RoleId = "Customer",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            };
+
+            await _context.UserRoles.AddAsync(userRole);
+            await _context.SaveChangesAsync();
+
             var customer = new Customer
             {
                 FirstName = request.FirstName,
@@ -302,6 +329,7 @@ namespace asp.net.Controllers.Dashboard
                 DateOfBirth = request.DoB,
                 Gender = request.Gender,
                 State = CustomerState.Active.ToString(),
+                UserId = userID.First(),
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
             };
