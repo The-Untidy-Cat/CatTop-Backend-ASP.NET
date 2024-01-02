@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
@@ -10,6 +6,7 @@ using asp.net.Models;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
+using asp.net.Services;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -94,10 +91,12 @@ namespace asp.net.Controllers.Dashboard
     public class OrdersController : ControllerBase
     {
         private readonly DbCtx _context;
+        private readonly IMailService _mailService;
 
-        public OrdersController(DbCtx context)
+        public OrdersController(DbCtx context, IMailService mailSerivce)
         {
             _context = context;
+            _mailService = mailSerivce;
         }
 
         [HttpGet("orders")]
@@ -428,6 +427,14 @@ namespace asp.net.Controllers.Dashboard
             if (request.State != null)
             {
                 order.State = request.State;
+                var order_history = new OrderHistories
+                {
+                    OrderId = order.Id,
+                    State = request.State,
+                    CreatedAt = DateTime.Now,
+                };
+                await _context.OrderHistories.AddAsync(order_history);
+                
             }
             if (request.PaymentState != null)
             {
@@ -436,6 +443,42 @@ namespace asp.net.Controllers.Dashboard
 
             order.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
+
+             
+            if (request.State == "confirmed")
+            {
+                order = await _context.Orders
+                    .Where(o => o.Id == id)
+                    .Include(o => o.Customer)
+                    .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.Product)
+                    .FirstOrDefaultAsync();
+                string filePath = Directory.GetCurrentDirectory() + "\\Templates\\order_item.html";
+                var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
+                content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                    order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+                content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+                foreach (var item in order.OrderItems)
+                {
+                    string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                    var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                    emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                    emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                    emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                    emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                    emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                    emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                    content += "<br>" + emailTemplateText;
+                }
+                var HTMLData = new HTMLMailData
+                {
+                    Email = order.Customer.Email,
+                    Subject = "Xác nhận đơn hàng #" + order.Id,
+                    Content = content,
+                };
+                _mailService.SendHTMLMailAsync(HTMLData);
+            }
             var responseSuccess = new
             {
                 code = 200,
@@ -488,6 +531,7 @@ namespace asp.net.Controllers.Dashboard
                 State = OrderState.Draft.ToString(),
                 CreatedAt = DateTime.Now,
             };
+
             await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
 
@@ -523,6 +567,7 @@ namespace asp.net.Controllers.Dashboard
                 await _context.OrderItems.AddRangeAsync(items);
             }
             await _context.SaveChangesAsync();
+
             var responseSuccess = new
             {
                 code = 200,
@@ -798,26 +843,6 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return BadRequest(response);
             }
-            //var statisticorders = new List<object>();
-            //if (request.start_date != null && request.end_date != null)
-            //{
-
-            //    foreach (var state in Enum.GetValues(typeof(OrderState)))
-            //    {
-            //        var statistic = new
-            //        {
-            //            count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
-            //            total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
-            //            total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
-            //            total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
-            //            total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
-            //            state = state.ToString(),
-            //            total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
-            //        };
-            //        statisticorders.Add(statistic);
-            //    }
-            //}
-
 
             var statisticOrders = _context.Orders
                 .GroupBy(o => o.State)

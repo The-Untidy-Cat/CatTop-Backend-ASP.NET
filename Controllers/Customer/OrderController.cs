@@ -1,5 +1,6 @@
 ﻿using asp.net.Data;
 using asp.net.Models;
+using asp.net.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Build.Framework;
@@ -47,10 +48,12 @@ namespace asp.net.Controllers.CustomerController
     public class OrderController : ControllerBase
     {
         private readonly DbCtx _context;
+        private readonly IMailService _mailService;
 
-        public OrderController(DbCtx context)
+        public OrderController(DbCtx context, IMailService mailService)
         {
             _context = context;
+            _mailService = mailService;
         }
 
         [HttpGet]
@@ -295,6 +298,34 @@ namespace asp.net.Controllers.CustomerController
                 _context.Carts.RemoveRange(cart);
             }
             await _context.SaveChangesAsync();
+
+            string filePath = Directory.GetCurrentDirectory() + "\\Templates\\order_item.html";
+            var content = "<p>Đơn hàng của bạn đã được tạo thành công</p>";
+            content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+            content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+            foreach (var item in order.OrderItems)
+            {
+                string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                content += "<br>" + emailTemplateText;
+            }
+            content += "<p>Để xem chi tiết đơn hàng, vui lòng truy cập vào <a href='https://cattop.theuntidycat.tech/user/orders/" + order.Id + "'>đây</a></p>";
+            content += "<p>Cảm ơn bạn đã mua hàng tại CatTop</p>";
+            var HTMLData = new HTMLMailData
+            {
+                Email = customer.Email,
+                Subject = "CatTop đã nhận đơn hàng #" + order.Id,
+                Content = content,
+            };
+            _mailService.SendHTMLMailAsync(HTMLData);
+
             var responseSuccess = new
             {
                 code = 200,
