@@ -781,7 +781,7 @@ namespace asp.net.Controllers.Dashboard
             };
             return Ok(responseSuccess);
         }
-        [HttpGet("statistics")]
+        [HttpGet("orders/statistics")]
         public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
         {
             if (_context.Orders == null)
