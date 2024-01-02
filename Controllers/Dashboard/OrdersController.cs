@@ -23,7 +23,7 @@ namespace asp.net.Controllers.Dashboard
         [DataType(DataType.Date)]
         public string? end_date { get; set; }
     }
-    public class SearchOrderForm: SearchForm
+    public class SearchOrderForm : SearchForm
     {
         [JsonPropertyName("state")]
         public string? state { get; set; }
@@ -60,7 +60,7 @@ namespace asp.net.Controllers.Dashboard
     {
         [JsonPropertyName("amount")]
         public int Amount { get; set; }
-        
+
         [JsonPropertyName("serial_number")]
         public string? SerialNumber { get; set; }
     }
@@ -194,7 +194,7 @@ namespace asp.net.Controllers.Dashboard
                             created_at = i.ProductVariant.Created_at,
                             updated_at = i.ProductVariant.Updated_at,
                             sold = i.Order.OrderItems.Where(i => i.OrderId == i.Id).Count(),
-                            
+
                             product = new
                             {
                                 id = i.ProductVariant.Product.Id,
@@ -212,7 +212,7 @@ namespace asp.net.Controllers.Dashboard
                     created_at = o.CreatedAt,
                     updated_at = o.UpdatedAt,
                 }); ;
-           
+
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
@@ -239,7 +239,7 @@ namespace asp.net.Controllers.Dashboard
             if (request.state != null)
             {
                 orders = orders.Where(o => o.State == request.state);
-            }    
+            }
             if (request.start_date != null && request.end_date != null)
             {
                 orders = orders.Where(o => o.items.Any(i => i.variant.created_at >= DateTime.Parse(request.start_date) && i.variant.created_at <= DateTime.Parse(request.end_date)));
@@ -363,10 +363,10 @@ namespace asp.net.Controllers.Dashboard
                                 standard_price = i.ProductVariant.StandardPrice,
                             }
                         }
-                        
+
                     }),
                 }).FirstOrDefault();
-        
+
             if (order == null)
             {
                 return NotFound(new
@@ -379,7 +379,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 code = 200,
                 data = order
-            }; 
+            };
 
             return Ok(response);
         }
@@ -413,23 +413,23 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return NotFound(response);
             }
-            if(request.PaymentMethod != null)
+            if (request.PaymentMethod != null)
             {
                 order.PaymentMethod = request.PaymentMethod;
             }
-            if(request.TrackingNo != null)
+            if (request.TrackingNo != null)
             {
                 order.TrackingNo = request.TrackingNo;
             }
-            if(request.Note != null)
+            if (request.Note != null)
             {
                 order.Note = request.Note;
             }
-            if(request.State != null)
+            if (request.State != null)
             {
                 order.State = request.State;
             }
-            if(request.PaymentState != null)
+            if (request.PaymentState != null)
             {
                 order.PaymentState = request.PaymentState;
             }
@@ -465,7 +465,7 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost("orders")]
         public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromBody] NewDashOrderForm request)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 var response = new
                 {
@@ -491,7 +491,7 @@ namespace asp.net.Controllers.Dashboard
             await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
 
-            if(request.Items != null && request.Items.Count > 0)
+            if (request.Items != null && request.Items.Count > 0)
             {
                 var items = new List<OrderItems>();
                 foreach (var item in request.Items)
@@ -560,7 +560,7 @@ namespace asp.net.Controllers.Dashboard
             var variant = await _context.ProductVariants.Where(ProductVariants => ProductVariants.Id == request.VariantId).FirstOrDefaultAsync();
             var order = await _context.Orders.Where(Orders => Orders.Id == id).FirstOrDefaultAsync();
 
-            if(order == null)
+            if (order == null)
             {
                 var response = new
                 {
@@ -570,7 +570,7 @@ namespace asp.net.Controllers.Dashboard
                 return BadRequest(response);
             }
 
-            if(order.State == OrderState.Confirmed.ToString())
+            if (order.State == OrderState.Confirmed.ToString())
             {
                 var response = new
                 {
@@ -781,7 +781,7 @@ namespace asp.net.Controllers.Dashboard
             };
             return Ok(responseSuccess);
         }
-        [HttpGet("orders/statistic")]
+        [HttpGet("orders/statistics")]
         public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
         {
             if (_context.Orders == null)
@@ -798,34 +798,43 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return BadRequest(response);
             }
-            var statisticorders = new List<object>();
-            if (request.start_date != null && request.end_date != null)
-            {
-   
-                foreach (var state in Enum.GetValues(typeof(OrderState)))
+            //var statisticorders = new List<object>();
+            //if (request.start_date != null && request.end_date != null)
+            //{
+
+            //    foreach (var state in Enum.GetValues(typeof(OrderState)))
+            //    {
+            //        var statistic = new
+            //        {
+            //            count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
+            //            total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
+            //            total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
+            //            total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
+            //            total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
+            //            state = state.ToString(),
+            //            total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
+            //        };
+            //        statisticorders.Add(statistic);
+            //    }
+            //}
+
+
+            var statisticOrders = _context.Orders
+                .GroupBy(o => o.State)
+                .Select(o => new
                 {
-                    var statistic = new
-                    {
-                        count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
-                        total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
-                        total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
-                        total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
-                        total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
-                        state = state.ToString(),
-                        total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
-                    };
-                    statisticorders.Add(statistic);
-                }
-            }
+                    state = o.Key,
+                    total_order = o.Count(),
+                    total_sale = o.Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
+                    total_amount = o.Sum(o => o.OrderItems.Sum(i => i.Amount)),
+                })
+               .ToList();
 
             var responseSuccess = new
             {
                 code = 200,
                 message = "Success in GetStatisticsOrders",
-                data = new
-                {
-                    statisticorders,
-                }
+                data = statisticOrders
             };
             return Ok(responseSuccess);
         }
