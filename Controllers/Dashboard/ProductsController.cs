@@ -345,16 +345,18 @@ namespace asp.net.Controllers.Dashboard
                         join p in _context.Products on v.ProductID equals p.Id
                         join oi in _context.OrderItems on v.Id equals oi.VariantId
                         join od in _context.Orders on oi.OrderId equals od.Id
+                        where od.CreatedAt >= DateTime.Parse(request.start_date) && od.CreatedAt <= DateTime.Parse(request.end_date)
                         group new { p, v, oi, od } by new
                         {
                             p.Id,
                             p.Name,
+                            VariantId = v.Id,
                             VariantName = v.Name,
                             v.Discount,
                             v.SalePrice,
                             v.StandardPrice
                         } into obj
-                        orderby obj.Sum(x => x.oi.Total) descending
+                        orderby obj.Count() descending
                         select new
                         {
                             ProductId = obj.Key.Id,
@@ -383,6 +385,7 @@ namespace asp.net.Controllers.Dashboard
                         total_order = total.OrderCount,
                         total_amount = total.TotalAmount,
                         total_sale = total.TotalSum,
+                        variant_count = _context.ProductVariants.Where(v => v.ProductID == total.ProductId).Select(v => v.Id).Count(),
                         discount = total.Discount,
                         sale_price = total.SalePrice,
                         standard_price = total.StandardPrice
