@@ -5,6 +5,7 @@ using asp.net.Models;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json.Serialization;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -49,39 +50,49 @@ namespace asp.net.Controllers.Dashboard
         public class NewCustomerForm
         {
             [Required]
-            [JsonPropertyName("Họ")]
+            [JsonPropertyName("last_name")]
             public string LastName { get; set; }
             [Required]
-            [JsonPropertyName("Tên")]
+            [JsonPropertyName("first_name")]
             public string FirstName { get; set; }
             [Required]
-            [JsonPropertyName("Email")]
+            [JsonPropertyName("email")]
             public string Email { get; set; }
             [Required]
-            [JsonPropertyName("Số điện thoại")]
+            [JsonPropertyName("phone_number")]
             public string PhoneNumber { get; set; }
             [Required]
-            [JsonPropertyName("Ngày sinh")]
+            [JsonPropertyName("date_of_birth")]
             public DateTime DoB { get; set; }
             [Required]
-            [JsonPropertyName("Giới tính")]
+            [Range(0, 1)]
+            [JsonPropertyName("gender")]
             public int Gender { get; set; }
+
         }
         public class UpdateCustomerForm
         {
-            [JsonPropertyName("Họ")]
+
+            [JsonPropertyName("last_name")]
             public string LastName { get; set; }
-            [JsonPropertyName("Tên")]
+
+            [JsonPropertyName("first_name")]
             public string FirstName { get; set; }
-            [JsonPropertyName("Email")]
+
+            [JsonPropertyName("email")]
             public string Email { get; set; }
-            [JsonPropertyName("Số điện thoại")]
+
+            [JsonPropertyName("phone_number")]
             public string PhoneNumber { get; set; }
-            [JsonPropertyName("Ngày sinh")]
+
+            [JsonPropertyName("date_of_birth")]
             public DateTime DoB { get; set; }
-            [JsonPropertyName("Giới tính")]
+
+            [Range(0, 1)]
+            [JsonPropertyName("gender")]
             public int Gender { get; set; }
-            [JsonPropertyName("Trạng thái")]
+
+            [JsonPropertyName("state")]
             public string State { get; set; }
         }
 
@@ -115,6 +126,9 @@ namespace asp.net.Controllers.Dashboard
             {
                 switch (form.filter)
                 {
+                    case "id":
+                        customers = customers.Where(c => c.Id.ToString() == form.keyword);
+                        break;
                     case "first_name":
                         customers = customers.Where(c => c.first_name.Contains(form.keyword));
                         break;
@@ -164,7 +178,7 @@ namespace asp.net.Controllers.Dashboard
                 });
             }
 
-            var customer = _context.Customers
+            var customer = await _context.Customers
                 .Where(c => c.Id == id)
                 .Select(c => new
                 {
@@ -190,7 +204,7 @@ namespace asp.net.Controllers.Dashboard
                         updated_at = o.UpdatedAt,
                         total = o.OrderItems.Where(i => i.OrderId == i.Id).Sum(i => i.Total)
                     })
-                });
+                }).FirstOrDefaultAsync();
 
             if(customer == null)
             {
@@ -200,16 +214,11 @@ namespace asp.net.Controllers.Dashboard
                     message = "Không tìm thấy thông tin"
                 });
             }
-
-            var records = await customer.ToListAsync();
             var response = new
             {
                 code = 200,
                 message = "get.Success",
-                data = new
-                {
-                    records,
-                }
+                data = customer
             };
             return Ok(response);
         }

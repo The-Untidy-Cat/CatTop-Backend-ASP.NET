@@ -89,15 +89,30 @@ namespace asp.net.Controllers.Dashboard
                         id = prod.BrandId,
                         name = prod.Brand.Name
                     },
-                    variant_count = prod.ProductVariants.Count()
+                    variant_count = prod.ProductVariants.Count(),
+                    variants = prod.ProductVariants.Select(v => new
+                    {
+                        id = v.Id,
+                        name = v.Name,
+                        sku = v.SKU,
+                    }).ToList()
                 });
             //.ToListAsync();
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
                 {
+                    case "id":
+                        products = products.Where(prod => prod.id.ToString() == request.keyword);
+                        break;
                     case "name":
-                        products = products.Where(prod => prod.name.Contains(request.keyword));
+                        products = products.Where(prod => prod.name.Contains(request.keyword) || prod.variants.Any(v => v.name.Contains(request.keyword)));
+                        break;
+                    case "brand":
+                        products = products.Where(prod => prod.brand.name.Contains(request.keyword));
+                        break;
+                    case "SKU":
+                        products = products.Where(prod => prod.variants.Any(v => v.sku.Contains(request.keyword)));
                         break;
                     case "state":
                         products = products.Where(prod => prod.state.Contains(request.keyword));
@@ -380,10 +395,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 code = 200,
                 message = "Thống kê sản phẩm thành công",
-                data = new
-                {
-                    productsStatistic,
-                }
+                data = productsStatistic,
             };
             return Ok(responseSuccess);
         }
