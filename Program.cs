@@ -67,13 +67,13 @@ app.Map("/v1/customer", subApp =>
 });
 
 // Bảo vệ tất cả các route dashboard bằng middleware DashboardMiddleware
-//app.Map("/v1/dashboard", subApp =>
-//{
-//    subApp.UseDashboardMiddleware();
-//    subApp.UseEndpoints(endpoints =>
-//    {
-//        endpoints.MapControllers();
-//    });
-//});
+app.Map("/v1/dashboard", subApp =>
+{
+    subApp.UseDashboardMiddleware();
+    subApp.UseEndpoints(endpoints =>
+    {
+        endpoints.MapControllers();
+    });
+});
 
 app.Run();

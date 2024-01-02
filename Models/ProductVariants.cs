@@ -99,8 +99,6 @@ namespace asp.net.Models
         public int? Warranty { get; set; }
         public string? Color { get; set; }
 
-        public ICollection<OrderItems>? OrderItems { get; set; }
-
     }
 
     public class SpecificationSummary

@@ -10,7 +10,89 @@ using Newtonsoft.Json.Linq;
 
 namespace asp.net.Controllers.Dashboard
 {
-    [Route("v1/dashboard/product_variants")]
+    public class UpdateVariantForm
+    {
+        //[JsonPropertyName("name")]
+        //public string? Name { get; set; }
+
+        [JsonPropertyName("cpu")]
+        public Cpu? Cpu { get; set; }
+
+        [JsonPropertyName("ram")]
+        public Ram? Ram { get; set; }
+
+        [JsonPropertyName("storage")]
+        public Storage? Storage { get; set; }
+
+        [JsonPropertyName("display")]
+        public Display? Display { get; set; }
+
+        [JsonPropertyName("gpu")]
+        public Gpu? Gpu { get; set; }
+
+        [JsonPropertyName("ports")]
+        public string? Ports { get; set; }
+
+        [JsonPropertyName("keyboard")]
+        public string? Keyboard { get; set; }
+
+        [JsonPropertyName("touchpad")]
+        public bool? Touchpad { get; set; }
+
+        [JsonPropertyName("webcam")]
+        public bool? Webcam { get; set; }
+
+        [JsonPropertyName("battery")]
+        public int? Battery { get; set; }
+
+        [JsonPropertyName("weight")]
+        public double? Weight { get; set; }
+
+        [JsonPropertyName("os")]
+        public string? Os { get; set; }
+
+        [JsonPropertyName("warranty")]
+        public int? Warranty { get; set; }
+
+        [JsonPropertyName("color")]
+        public string? Color { get; set; }
+
+    }
+    public class NewVariantForm
+    {
+        [Required]
+        [JsonPropertyName("sku")]
+        public string? SKU { get; set; }
+        [Required]
+        [JsonPropertyName("image")]
+        public string? Image { get; set; }
+        [Required]
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+        [Required]
+        [JsonPropertyName("standard_price")]
+        public long StandardPrice { get; set; }
+        [Required]
+        [JsonPropertyName("tax_rate")]
+        public double TaxRate { get; set; }
+        [Required]
+        [JsonPropertyName("discount")]
+        public double Discount { get; set; }
+        [Required]
+        [JsonPropertyName("extra_fee")]
+        public long ExtraFee { get; set; }
+        [Required]
+        [JsonPropertyName("cost_price")]
+        public long CostPrice { get; set; }
+        [Required]
+        [JsonPropertyName("specifications")]
+        public Specifications Specifications { get; set; }
+
+        [Required]
+        [JsonPropertyName("state")]
+        public string? State { get; set; }
+    }
+    [Route("v1/dashboard")]
     [ApiController]
     public class ProductVariantsController : ControllerBase
     {
@@ -21,74 +103,157 @@ namespace asp.net.Controllers.Dashboard
             _context = context;
         }
 
-        //public class Specifications
-        //{
-        //    public Cpu? Cpu { get; set; }
-        //    public Ram? Ram { get; set; }
-        //    public Storage? Storage { get; set; }
-        //    public Display? Display { get; set; }
-        //    public Gpu? Gpu { get; set; }
-        //    public string? Ports { get; set; }
-        //    public string? Keyboard { get; set; }
-        //    public bool? Touchpad { get; set; }
-        //    public bool? Webcam { get; set; }
-        //    public int? Battery { get; set; }
-        //    public double? Weight { get; set; }
-        //    public string? Os { get; set; }
-        //    public int? Warranty { get; set; }
-        //    public string? Color { get; set; }
-        //}
-        public class UpdateVariantForm
+        [HttpGet("variants")]
+        public async Task<ActionResult<IEnumerable<ProductVariants>>> GetProductVariants([FromQuery] SearchForm form)
         {
-            //[JsonPropertyName("name")]
-            //public string? Name { get; set; }
+            var variants = _context.ProductVariants
+                .Where(v => v.State == VariantState.Published.ToString() && v.Product.State == ProductState.Published.ToString())
+                .Select(v => new
+                {
+                    id = v.Id,
+                    sku = v.SKU,
+                    image = v.Image,
+                    name = v.Name,
+                    standard_price = v.StandardPrice,
+                    tax_rate = v.TaxRate,
+                    discount = v.Discount,
+                    extra_fee = v.ExtraFee,
+                    cost_price = v.CostPrice,
+                    sale_price = v.SalePrice,
+                    product = new
+                    {
+                        id = v.Product.Id,
+                        name = v.Product.Name,
+                        brand = v.Product.Brand.Name,
+                    },
+                });
+            if (form.filter != null && form.keyword != null)
+            {
+                switch (form.filter)
+                {
+                    case "id":
+                        variants = variants.Where(v => v.id.ToString() == form.keyword);
+                        break;
+                    case "name":
+                        variants = variants.Where(v => v.name.Contains(form.keyword));
+                        break;
+                    case "SKU":
+                        variants = variants.Where(v => v.sku.Contains(form.keyword));
+                        break;
+                    case "product":
+                        variants = variants.Where(v => v.product.name.Contains(form.keyword));
+                        break;
+                    case "brand":
+                        variants = variants.Where(v => v.product.brand.Contains(form.keyword));
+                        break;
+                }
+            }
+            var length = await variants.CountAsync();
+            var records = await variants
+                .Skip(form.offset)
+                .Take(form.limit)
+                .ToListAsync();
+            return Ok(new
+            {
+                code = 200,
+                data = new
+                {
+                    records,
+                    length,
+                    form.limit,
+                    form.offset
+                }
+            });
+        }
 
-            [JsonPropertyName("cpu")]
-            public Cpu? Cpu { get; set; }
+        [HttpPost("products/{productId}/variants")]
+        public async Task<ActionResult<ProductVariants>> CreateProductVariant(int productId, [FromBody] NewVariantForm request)
+        {
+            var product = await _context.Products
+                .Where(p => p.Id == productId)
+                .FirstOrDefaultAsync();
+            if (product == null)
+            {
+                var response = new
+                {
+                    code = 404,
+                    message = "Không tìm thấy sản phẩm"
+                };
+                return NotFound(response);
+            }
 
-            [JsonPropertyName("ram")]
-            public Ram? Ram { get; set; }
+            var variant = new ProductVariants
+            {
+                SKU = request.SKU,
+                Image = request.Image,
+                Name = request.Name,
+                StandardPrice = request.StandardPrice,
+                TaxRate = request.TaxRate,
+                Discount = request.Discount,
+                ExtraFee = request.ExtraFee,
+                CostPrice = request.CostPrice,
+                SalePrice = request.StandardPrice + request.ExtraFee - (long)(request.Discount * request.StandardPrice),
+                Specifications = JsonConvert.SerializeObject(request.Specifications),
+                State = request.State,
+                ProductID = productId,
+                Created_at = DateTime.Now,
+                Updated_at = DateTime.Now
+            };
 
-            [JsonPropertyName("storage")]
-            public Storage? Storage { get; set; }
+            _context.ProductVariants.Add(variant);
+            await _context.SaveChangesAsync();
 
-            [JsonPropertyName("display")]
-            public Display? Display { get; set; }
-
-            [JsonPropertyName("gpu")]
-            public Gpu? Gpu { get; set; }
-
-            [JsonPropertyName("ports")]
-            public string? Ports { get; set; }
-
-            [JsonPropertyName("keyboard")]
-            public string? Keyboard { get; set; }
-
-            [JsonPropertyName("touchpad")]
-            public bool? Touchpad { get; set; }
-
-            [JsonPropertyName("webcam")]
-            public bool? Webcam { get; set; }
-
-            [JsonPropertyName("battery")]
-            public int? Battery { get; set; }
-
-            [JsonPropertyName("weight")]
-            public double? Weight { get; set; }
-
-            [JsonPropertyName("os")]
-            public string? Os { get; set; }
-
-            [JsonPropertyName("warranty")]
-            public int? Warranty { get; set; }
-
-            [JsonPropertyName("color")]
-            public string? Color { get; set; }
-
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Thêm biến thể thành công",
+                data = new
+                {
+                    id = variant.Id,
+                    SKU = variant.SKU,
+                    image = variant.Image,
+                    name = variant.Name,
+                    standard_price = variant.StandardPrice,
+                    tax_rate = variant.TaxRate,
+                    discount = variant.Discount,
+                    extra_fee = variant.ExtraFee,
+                    cost_price = variant.CostPrice,
+                    specification = new
+                    {
+                        cpu = new
+                        {
+                            name = request.Specifications.Cpu.Name,
+                            cores = request.Specifications.Cpu.Cores,
+                            threads = request.Specifications.Cpu.Threads,
+                            base_clock = request.Specifications.Cpu.BaseClock,
+                            turbo_clock = request.Specifications.Cpu.TurboClock,
+                            cache = request.Specifications.Cpu.Cache
+                        },
+                        ram = new
+                        {
+                            capacity = request.Specifications.Ram.Capacity,
+                            type = request.Specifications.Ram.Type,
+                            frequency = request.Specifications.Ram.Frequency,
+                        },
+                        storage = new
+                        {
+                            drive = request.Specifications.Storage.Drive.ToString(),
+                            capacity = request.Specifications.Storage.Capacity.ToString(),
+                            type = request.Specifications.Storage.Type.ToString(),
+                        },
+                        display = new
+                        {
+                            size = request.Specifications.Display.Size.ToString(),
+                            resolution = request.Specifications.Display.Resolution.ToString(),
+                        }
+                    }
+                }
+            };
+            return Ok(responseSuccess);
         }
 
         // GET: api/ProductVariants/5
-        [HttpGet("{id}")]
+        [HttpGet("products/{productId}/variants/{id}")]
         public async Task<ActionResult<ProductVariants>> GetProductVariants(int id)
         {
             if (_context.ProductVariants == null)
@@ -173,7 +338,7 @@ namespace asp.net.Controllers.Dashboard
             return Ok(response);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("products/{productId}/variants/{id}")]
         public async Task<IActionResult> PutProductVariant(int id, [FromBody] UpdateVariantForm request)
         {
             var item = await _context.ProductVariants
@@ -188,11 +353,6 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return NotFound(response);
             }
-
-            //if (request.Name != null)
-            //{
-            //    item.Name = request.Name;
-            //}
 
             item.Updated_at = DateTime.Now;
             await _context.SaveChangesAsync();
