@@ -55,23 +55,5 @@ namespace asp.net.Models
         public int BrandId { get; set; }
         public Brand? Brand { get; set; }
         public ICollection<ProductVariants>? ProductVariants { get; set; }
-
-        public long StandardPrice
-        {
-            get
-            {
-                long price = ProductVariants.Min(v => v.StandardPrice);
-                return price;
-            }
-        }
-
-        public long SalePrice
-        {
-            get
-            {
-                long price = ProductVariants.Min(v => v.SalePrice);
-                return price;
-            }
-        }
     }
 }

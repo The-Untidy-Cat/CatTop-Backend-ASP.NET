@@ -299,9 +299,18 @@ namespace asp.net.Controllers.CustomerController
                 _context.Carts.RemoveRange(cart);
             }
             await _context.SaveChangesAsync();
+            var history = new OrderHistories
+            {
+                OrderId = order.Id,
+                State = OrderState.Pending.ToString(),
+                CreatedAt = DateTime.Now
+            };
+            await _context.OrderHistories.AddAsync(history);
+            await _context.SaveChangesAsync();
 
             string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
             var content = "<p>Đơn hàng của bạn đã được tạo thành công</p>";
+            content += "<p>Để xem chi tiết đơn hàng, vui lòng truy cập vào <strong><a href='https://cattop.theuntidycat.tech/user/orders/" + order.Id + "'>đây</a></strong></p>";
             content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
                 order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
             content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
@@ -317,8 +326,6 @@ namespace asp.net.Controllers.CustomerController
                 emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
                 content += "<br>" + emailTemplateText;
             }
-            content += "<p>Để xem chi tiết đơn hàng, vui lòng truy cập vào <a href='https://cattop.theuntidycat.tech/user/orders/" + order.Id + "'>đây</a></p>";
-            content += "<p>Cảm ơn bạn đã mua hàng tại CatTop</p>";
             var HTMLData = new HTMLMailData
             {
                 Email = customer.Email,
@@ -333,7 +340,7 @@ namespace asp.net.Controllers.CustomerController
                 message = "success",
                 data = new
                 {
-                    order = new
+                    detail = new
                     {
                         order.Id,
                         created_at = order.CreatedAt,

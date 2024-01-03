@@ -72,7 +72,7 @@ namespace asp.net.Controllers.Dashboard
             }
             var length = brands.Count();
             var records = await brands
-                .Skip(request.offset * request.limit)
+                .Skip(request.offset)
                 .Take(request.limit)
                 .ToListAsync();
             var response = new

@@ -155,11 +155,8 @@ namespace asp.net.Controllers.Web
                             oi.Review,
                             created_at = oi.CreatedAt,
                             updated_at = oi.UpdatedAt,
-                            customer = new
-                            {
-                                first_name = oi.Order.Customer.FirstName,
-                                last_name = oi.Order.Customer.LastName
-                            }
+                            first_name = oi.Order.Customer.FirstName,
+                            last_name = oi.Order.Customer.LastName
                         }).ToList()
                     }).ToList()
                 }).FirstOrDefaultAsync();
