@@ -35,6 +35,7 @@ namespace asp.net.Controllers.CustomerController
             var cart = await _context.Carts.Where(c => c.CustomerID == customer.Id)
                 .Select(c => new
                 {
+                    c.Amount,
                     variant = new
                     {
                         c.Variant.Id,

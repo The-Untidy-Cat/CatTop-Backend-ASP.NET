@@ -336,7 +336,7 @@ namespace asp.net.Controllers.Auth
             });
         }
 
-        [HttpPost("logout")]
+        [HttpDelete("logout")]
         public async Task<ActionResult> Logout()
         {
             HttpResponse response = HttpContext.Response;

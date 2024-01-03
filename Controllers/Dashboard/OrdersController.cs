@@ -434,7 +434,7 @@ namespace asp.net.Controllers.Dashboard
                     CreatedAt = DateTime.Now,
                 };
                 await _context.OrderHistories.AddAsync(order_history);
-                
+
             }
             if (request.PaymentState != null)
             {
@@ -444,7 +444,7 @@ namespace asp.net.Controllers.Dashboard
             order.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
-             
+
             if (request.State == "confirmed")
             {
                 order = await _context.Orders
@@ -454,7 +454,7 @@ namespace asp.net.Controllers.Dashboard
                     .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Product)
                     .FirstOrDefaultAsync();
-                string filePath = Directory.GetCurrentDirectory() + "\\Templates\\order_item.html";
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
                 var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
                 content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
                     order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
@@ -567,7 +567,30 @@ namespace asp.net.Controllers.Dashboard
                 await _context.OrderItems.AddRangeAsync(items);
             }
             await _context.SaveChangesAsync();
-
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
+            var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
+            content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+            content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+            foreach (var item in order.OrderItems)
+            {
+                string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                content += "<br>" + emailTemplateText;
+            }
+            var HTMLData = new HTMLMailData
+            {
+                Email = order.Customer.Email,
+                Subject = "Xác nhận đơn hàng #" + order.Id,
+                Content = content,
+            };
+            _mailService.SendHTMLMailAsync(HTMLData);
             var responseSuccess = new
             {
                 code = 200,

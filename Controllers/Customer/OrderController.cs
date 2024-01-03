@@ -111,6 +111,7 @@ namespace asp.net.Controllers.CustomerController
         public async Task<ActionResult<IEnumerable<Order>>> GetOrderDetail(int id)
         {
             var user = HttpContext.Items["user"];
+            Console.WriteLine(user);
             var order = _context.Orders
                 .Where(o => o.Id == id && o.Customer.User.Username == user)
                 .Select(o => new
@@ -142,20 +143,20 @@ namespace asp.net.Controllers.CustomerController
                         oi.Rating,
                         oi.Review
                     }).ToList(),
-                    history = o.OrderHistories.Select(h => new
+                    histories = o.OrderHistories.Select(h => new
                     {
                         h.State,
                         created_at = h.CreatedAt
                     }).ToList(),
-                    address = new
+                    address = o.AddressBook != null ? new
                     {
-                        o.AddressBook.Name,
+                        name = o.AddressBook.Name,
                         address_line = o.AddressBook.AddressLine,
-                        o.AddressBook.Phone,
-                        o.AddressBook.Province,
-                        o.AddressBook.District,
-                        o.AddressBook.Ward
-                    },
+                        phone = o.AddressBook.Phone,
+                        province = o.AddressBook.Province,
+                        district = o.AddressBook.District,
+                        ward = o.AddressBook.Ward
+                    } : null,
                     total = o.OrderItems.Where(oi => oi.OrderId == o.Id).Sum(oi => oi.Total)
                 }).FirstOrDefault();
             if (order == null)
@@ -299,7 +300,7 @@ namespace asp.net.Controllers.CustomerController
             }
             await _context.SaveChangesAsync();
 
-            string filePath = Directory.GetCurrentDirectory() + "\\Templates\\order_item.html";
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
             var content = "<p>Đơn hàng của bạn đã được tạo thành công</p>";
             content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
                 order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));

@@ -35,6 +35,7 @@ namespace asp.net.Middlewares
             if (user == null)
             {
                 await _next(httpContext);
+                return;
             }
             httpContext.Items["user"] = user;
             await _next(httpContext);
