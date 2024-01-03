@@ -93,7 +93,8 @@ namespace asp.net.Controllers.Web
                     ram = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Ram.ToString(),
                     storage = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Storage.ToString(),
                     display = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Display.ToString(),
-                    card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString()
+                    card = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Gpu.ToString(),
+                    color = JsonConvert.DeserializeObject<Specifications>(v.Specifications).Color.ToString(),
                 }).ToList()
             }).ToListAsync();
             var response = new
