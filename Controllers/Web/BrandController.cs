@@ -26,7 +26,7 @@ namespace asp.net.Controllers.Web
                     id = b.Id,
                     name = b.Name,
                     image = b.Image,
-                    product_count = b.Products.Count(p => p.State == "published"),
+                    product_count = b.Products.Count(p => p.State == "published" && p.ProductVariants.Any(pv => pv.State == "published")),
                 })
                 .ToList();
             return Ok(new

@@ -345,7 +345,6 @@ namespace asp.net.Controllers.Dashboard
                         join p in _context.Products on v.ProductID equals p.Id
                         join oi in _context.OrderItems on v.Id equals oi.VariantId
                         join od in _context.Orders on oi.OrderId equals od.Id
-                        where od.CreatedAt >= DateTime.Parse(request.start_date) && od.CreatedAt <= DateTime.Parse(request.end_date)
                         group new { p, v, oi, od } by new
                         {
                             p.Id,
@@ -354,7 +353,8 @@ namespace asp.net.Controllers.Dashboard
                             VariantName = v.Name,
                             v.Discount,
                             v.SalePrice,
-                            v.StandardPrice
+                            v.StandardPrice,
+                            od.CreatedAt
                         } into obj
                         orderby obj.Count() descending
                         select new
@@ -367,31 +367,33 @@ namespace asp.net.Controllers.Dashboard
                             TotalSum = obj.Sum(x => x.oi.Total),
                             Discount = obj.Key.Discount,
                             SalePrice = obj.Key.SalePrice,
-                            StandardPrice = obj.Key.StandardPrice
+                            StandardPrice = obj.Key.StandardPrice,
+                            CreatedAt = obj.Key.CreatedAt,
                         };
-            var result = query.ToList();
+
 
 
             if (request.start_date != null && request.end_date != null)
             {
-
-                foreach (var total in result)
+                query = query.Where(query => query.CreatedAt >= DateTime.Parse(request.start_date) && query.CreatedAt <= DateTime.Parse(request.end_date));
+            }
+            var result = query.Take(5).ToList();
+            foreach (var total in result)
+            {
+                var statistic = new
                 {
-                    var statistic = new
-                    {
-                        id = total.ProductId,
-                        product_name = total.ProductName,
-                        variant_name = total.VariantName,
-                        total_order = total.OrderCount,
-                        total_amount = total.TotalAmount,
-                        total_sale = total.TotalSum,
-                        variant_count = _context.ProductVariants.Where(v => v.ProductID == total.ProductId).Select(v => v.Id).Count(),
-                        discount = total.Discount,
-                        sale_price = total.SalePrice,
-                        standard_price = total.StandardPrice
-                    };
-                    productsStatistic.Add(statistic);
-                }
+                    id = total.ProductId,
+                    product_name = total.ProductName,
+                    variant_name = total.VariantName,
+                    total_order = total.OrderCount,
+                    total_amount = total.TotalAmount,
+                    total_sale = total.TotalSum,
+                    variant_count = _context.ProductVariants.Where(v => v.ProductID == total.ProductId).Select(v => v.Id).Count(),
+                    discount = total.Discount,
+                    sale_price = total.SalePrice,
+                    standard_price = total.StandardPrice
+                };
+                productsStatistic.Add(statistic);
             }
 
             var responseSuccess = new

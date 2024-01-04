@@ -47,14 +47,14 @@ namespace asp.net.Controllers.CustomerController
                 {
                     user = new
                     {
-                        id = employee.Id,
-                        first_name = employee.FirstName,
-                        last_name = employee.LastName,
-                        email = employee.Email,
-                        phone_number = employee.PhoneNumber,
-                        employee.Gender,
-                        date_of_birth = employee.DateOfBirth,
-                        username = employee.Username
+                        id = employee?.Id,
+                        first_name = employee?.FirstName,
+                        last_name = employee?.LastName,
+                        email = employee?.Email,
+                        phone_number = employee?.PhoneNumber,
+                        employee?.Gender,
+                        date_of_birth = employee?.DateOfBirth,
+                        username = employee?.Username
                     }
 
                 }

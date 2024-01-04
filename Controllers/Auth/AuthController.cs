@@ -28,7 +28,7 @@ namespace asp.net.Controllers.Auth
     {
         [Required]
         [JsonPropertyName("first_name")]
-        [RegularExpression(@"[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ]+", ErrorMessage = "Tên không hợp lệ")]
+        //[RegularExpression(@"[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ]+", ErrorMessage = "Tên không hợp lệ")]
         public string? FirstName { get; set; }
 
         [Required]
@@ -140,7 +140,7 @@ namespace asp.net.Controllers.Auth
 
         public static void AddTokenToCookie(HttpResponse response, string token, AuthSetting _authSetting)
         {
-            response.Cookies.Append("token", token, new CookieOptions
+            response.Cookies.Append(_authSetting.Cookie.Name ?? "token", token, new CookieOptions
             {
                 HttpOnly = _authSetting.Cookie.HttpOnly,
                 SameSite = _authSetting.Cookie.SameSite,

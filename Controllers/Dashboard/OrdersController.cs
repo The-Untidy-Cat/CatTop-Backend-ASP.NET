@@ -425,48 +425,79 @@ namespace asp.net.Controllers.Dashboard
             {
                 order.Note = request.Note;
             }
-            if (request.State != null)
-            {
-                order.State = request.State;
-                var order_history = new OrderHistories
-                {
-                    OrderId = order.Id,
-                    State = request.State,
-                    CreatedAt = DateTime.Now,
-                };
-                await _context.OrderHistories.AddAsync(order_history);
-
-            }
             if (request.PaymentState != null)
             {
                 order.PaymentState = request.PaymentState;
             }
-            if(request.State == OrderState.Failed.ToString())
+            if (request.State != null)
             {
-                var newOrder = new Order
+                if (request.State == OrderState.Delivered.ToString() && order.PaymentState != PaymentState.Unpaid.ToString())
                 {
-                    CustomerId = order.CustomerId,
-                    EmployeeId = order?.EmployeeId ?? null,
-                    PaymentMethod = order.PaymentMethod,
-                    ShoppingMethod = order.ShoppingMethod,
-                    PaymentState = order.PaymentState,
-                    State = OrderState.Pending.ToString(),
-                    Note = "<p>Đơn hàng từ: </p>" + order.Id,
-                    OrderItems = (ICollection<OrderItems>)order.OrderItems.Where(OrderItems => OrderItems.OrderId == order.Id).Select(i => new
+                    return BadRequest(new
                     {
-                        order_id = i.OrderId,
-                        variant_id = i.VariantId,
-                        amount = i.Amount,
-                        sale_price = i.SalePrice,
+                        code = 400,
+                        message = "Đơn hàng không thể hoàn thành khi chưa thanh toán"
+                    });
+                }
+                else if (request.State == OrderState.Failed.ToString())
+                {
+                    var newOrder = new Order
+                    {
+                        CustomerId = order.CustomerId,
+                        EmployeeId = order?.EmployeeId ?? null,
+                        PaymentMethod = order.PaymentMethod,
+                        ShoppingMethod = order.ShoppingMethod,
+                        PaymentState = order.PaymentState,
+                        State = OrderState.Pending.ToString(),
+                        Note = "<p>Đơn hàng từ: </p>" + order.Id,
+                        CreatedAt = DateTime.Now,
+                    };
+                    await _context.Orders.AddAsync(newOrder);
+                    order.State = request.State;
+                    order.UpdatedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    var newOrderItems = new List<OrderItems>();
+                    foreach (var item in order.OrderItems)
+                    {
+                        var newItem = new OrderItems
+                        {
+                            OrderId = newOrder.Id,
+                            VariantId = item.VariantId,
+                            Amount = item.Amount,
+                            StandardPrice = item.StandardPrice,
+                            SalePrice = item.SalePrice,
+                            Total = item.Total,
+                            IsRefunded = false,
+                            Rating = null,
+                            SerialNumber = item.SerialNumber,
+                            Review = null,
+                            CreatedAt = DateTime.Now,
+                        };
+                        newOrderItems.Add(newItem);
                     }
-                    ),
-                    CreatedAt = DateTime.Now,
-                };
+                    await _context.OrderItems.AddRangeAsync(newOrderItems);
+                    var newOrderHistory = new OrderHistories
+                    {
+                        OrderId = newOrder.Id,
+                        State = newOrder.State,
+                        CreatedAt = DateTime.Now,
+                    };
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    order.State = request.State;
+                    var order_history = new OrderHistories
+                    {
+                        OrderId = order.Id,
+                        State = request.State,
+                        CreatedAt = DateTime.Now,
+                    };
+                    await _context.OrderHistories.AddAsync(order_history);
+                }
             }
-
             order.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
-
 
             if (request.State == "confirmed")
             {
@@ -480,7 +511,7 @@ namespace asp.net.Controllers.Dashboard
                 string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
                 var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
                 content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
-                    order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+                    order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total)) + "<br>- Ghi chú: " + order.Note;
                 content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
                 foreach (var item in order.OrderItems)
                 {
@@ -909,7 +940,7 @@ namespace asp.net.Controllers.Dashboard
             };
             return Ok(responseSuccess);
         }
-        
+
         private bool OrderExists(int id)
         {
             return (_context.Orders?.Any(e => e.Id == id)).GetValueOrDefault();
