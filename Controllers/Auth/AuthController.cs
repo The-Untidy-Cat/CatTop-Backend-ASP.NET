@@ -145,7 +145,8 @@ namespace asp.net.Controllers.Auth
                 HttpOnly = _authSetting.Cookie.HttpOnly,
                 SameSite = _authSetting.Cookie.SameSite,
                 Expires = DateTime.Now.AddDays(_authSetting.Cookie.MaxAge),
-                Secure = _authSetting.Cookie.Secure
+                Secure = _authSetting.Cookie.Secure,
+                Domain = _authSetting.Cookie.Domain
             });
         }
     }
