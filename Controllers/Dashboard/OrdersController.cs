@@ -100,6 +100,56 @@ namespace asp.net.Controllers.Dashboard
             _context = context;
         }
 
+        [HttpGet("orders/statistics")]
+        public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
+        {
+            if (_context.Orders == null)
+            {
+                return NotFound();
+            }
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Fail in GetStatisticsOrders",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                };
+                return BadRequest(response);
+            }
+            var statisticorders = new List<object>();
+            if (request.start_date != null && request.end_date != null)
+            {
+
+                foreach (var state in Enum.GetValues(typeof(OrderState)))
+                {
+                    var statistic = new
+                    {
+                        count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
+                        total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
+                        total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
+                        total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
+                        total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
+                        state = state.ToString(),
+                        total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
+                    };
+                    statisticorders.Add(statistic);
+                }
+            }
+
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Success in GetStatisticsOrders",
+                data = new
+                {
+                    statisticorders,
+                }
+            };
+            return Ok(responseSuccess);
+        }
+
+
         [HttpGet("orders")]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromQuery] SearchOrderForm request)
         {
@@ -432,6 +482,10 @@ namespace asp.net.Controllers.Dashboard
             if(request.PaymentState != null)
             {
                 order.PaymentState = request.PaymentState;
+            }
+            if(request.State == OrderState.Failed.ToString())
+            {
+                
             }
 
             order.UpdatedAt = DateTime.Now;
@@ -781,55 +835,7 @@ namespace asp.net.Controllers.Dashboard
             };
             return Ok(responseSuccess);
         }
-        [HttpGet("orders/statistic")]
-        public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
-        {
-            if (_context.Orders == null)
-            {
-                return NotFound();
-            }
-            if (!ModelState.IsValid)
-            {
-                var response = new
-                {
-                    code = 400,
-                    message = "Fail in GetStatisticsOrders",
-                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
-                };
-                return BadRequest(response);
-            }
-            var statisticorders = new List<object>();
-            if (request.start_date != null && request.end_date != null)
-            {
-   
-                foreach (var state in Enum.GetValues(typeof(OrderState)))
-                {
-                    var statistic = new
-                    {
-                        count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
-                        total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
-                        total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
-                        total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
-                        total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
-                        state = state.ToString(),
-                        total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
-                    };
-                    statisticorders.Add(statistic);
-                }
-            }
-
-            var responseSuccess = new
-            {
-                code = 200,
-                message = "Success in GetStatisticsOrders",
-                data = new
-                {
-                    statisticorders,
-                }
-            };
-            return Ok(responseSuccess);
-        }
-
+        
         private bool OrderExists(int id)
         {
             return (_context.Orders?.Any(e => e.Id == id)).GetValueOrDefault();
