@@ -403,7 +403,7 @@ namespace asp.net.Controllers.Dashboard
                 return BadRequest(response);
             }
 
-            var order = await _context.Orders.Where(o => o.Id == id).FirstOrDefaultAsync();
+            var order = await _context.Orders.Where(o => o.Id == id).Include(o => o.OrderItems).FirstOrDefaultAsync();
             if (order == null)
             {
                 var response = new
@@ -431,7 +431,7 @@ namespace asp.net.Controllers.Dashboard
             }
             if (request.State != null)
             {
-                if (request.State == OrderState.Delivered.ToString() && order.PaymentState != PaymentState.Unpaid.ToString())
+                if (request.State == "delivered" && order.PaymentState != "paid")
                 {
                     return BadRequest(new
                     {
@@ -439,7 +439,7 @@ namespace asp.net.Controllers.Dashboard
                         message = "Đơn hàng không thể hoàn thành khi chưa thanh toán"
                     });
                 }
-                else if (request.State == OrderState.Failed.ToString())
+                else if (request.State == "failed")
                 {
                     var newOrder = new Order
                     {
@@ -448,11 +448,13 @@ namespace asp.net.Controllers.Dashboard
                         PaymentMethod = order.PaymentMethod,
                         ShoppingMethod = order.ShoppingMethod,
                         PaymentState = order.PaymentState,
-                        State = OrderState.Pending.ToString(),
-                        Note = "<p>Đơn hàng từ: </p>" + order.Id,
+                        State = "pending",
+                        Note = "Đơn hàng đổi trả từ đơn " + order.Id,
                         CreatedAt = DateTime.Now,
                     };
                     await _context.Orders.AddAsync(newOrder);
+                    await _context.SaveChangesAsync();
+                    order.Note = order.Note + ". Đơn hàng mới: " + newOrder.Id;
                     order.State = request.State;
                     order.UpdatedAt = DateTime.Now;
                     await _context.SaveChangesAsync();
@@ -483,6 +485,40 @@ namespace asp.net.Controllers.Dashboard
                         CreatedAt = DateTime.Now,
                     };
                     await _context.SaveChangesAsync();
+                    return Ok(new
+                    {
+                        code = 200,
+                        message = "Đơn hàng đã đổi trả",
+                        data = new
+                        {
+                            old_order = new
+                            {
+                                order.Id,
+                                order.ShoppingMethod,
+                                order.PaymentMethod,
+                                order.PaymentState,
+                                order.State,
+                                order.TrackingNo,
+                                order.AddressId,
+                                order.Note,
+                                order.CreatedAt,
+                                order.UpdatedAt,
+                            },
+                            new_order = new
+                            {
+                                newOrder.Id,
+                                newOrder.ShoppingMethod,
+                                newOrder.PaymentMethod,
+                                newOrder.PaymentState,
+                                newOrder.State,
+                                newOrder.TrackingNo,
+                                newOrder.AddressId,
+                                newOrder.Note,
+                                newOrder.CreatedAt,
+                                newOrder.UpdatedAt,
+                            }
+                        }
+                    });
                 }
                 else
                 {
