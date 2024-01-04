@@ -177,7 +177,31 @@ namespace asp.net.Controllers.Auth
             if (user != null) return BadRequest(new
             {
                 code = 400,
-                message = "Tài khoản đã tồn tại"
+                message = "Tài khoản đã tồn tại",
+                errors = new
+                {
+                    username = new string[] { "Tài khoản đã tồn tại" }
+                }
+            });
+            var customer = await _context.Customers.Where(c => c.Email == request.Email).FirstOrDefaultAsync();
+            if (customer != null) return BadRequest(new
+            {
+                code = 400,
+                message = "Email đã tồn tại",
+                errors = new
+                {
+                    email = new string[] { "Email đã được người dùng khác đăng kí" }
+                }
+            });
+            var phoneNumber = await _context.Customers.Where(c => c.PhoneNumber == request.PhoneNumber).FirstOrDefaultAsync();
+            if (phoneNumber != null) return BadRequest(new
+            {
+                code = 400,
+                message = "Số điện thoại đã tồn tại",
+                errors = new
+                {
+                    phone_number = new string[] { "Số điện thoại đã được người dùng khác đăng kí" }
+                }
             });
             var newUser = new User
             {
