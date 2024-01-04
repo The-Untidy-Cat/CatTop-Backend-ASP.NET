@@ -149,6 +149,18 @@ namespace asp.net.Controllers.Auth
                 Domain = _authSetting.Cookie.Domain
             });
         }
+
+        public static void RemoveTokenFromCookie(HttpResponse response, AuthSetting _authSetting)
+        {
+            response.Cookies.Delete(_authSetting.Cookie.Name ?? "token", new CookieOptions
+            {
+                HttpOnly = _authSetting.Cookie.HttpOnly,
+                SameSite = _authSetting.Cookie.SameSite,
+                Expires = DateTime.Now,
+                Secure = _authSetting.Cookie.Secure,
+                Domain = _authSetting.Cookie.Domain
+            });
+        }
     }
 
     [Route("v1/auth")]
@@ -368,7 +380,7 @@ namespace asp.net.Controllers.Auth
         public async Task<ActionResult> Logout()
         {
             HttpResponse response = HttpContext.Response;
-            response.Cookies.Delete(_authSetting.Cookie.Name);
+            AuthService.RemoveTokenFromCookie(response, _authSetting);
             return Ok(new
             {
                 code = 200,
