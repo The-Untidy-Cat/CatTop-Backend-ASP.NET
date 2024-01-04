@@ -17,6 +17,14 @@ namespace asp.net.Controllers.CustomerController
         public int Amount { get; set; }
     }
 
+    public class UpdateCartForm
+    {
+        [Required]
+        [Range(0, 10)]
+        [JsonPropertyName("amount")]
+        public int Amount { get; set; }
+    }
+
     [Route("v1/customer/cart")]
     [ApiController]
     public class CartController : ControllerBase
@@ -32,9 +40,11 @@ namespace asp.net.Controllers.CustomerController
         {
             var user = HttpContext.Items["user"];
             var customer = await _context.Customers.Where(c => c.User.Username == user).FirstOrDefaultAsync();
-            var cart = await _context.Carts.Where(c => c.CustomerID == customer.Id)
+            var cart = await _context.Carts.Where(c => c.Customer.User.Username == user)
                 .Select(c => new
                 {
+                    c.Id,
+                    c.Amount,
                     variant = new
                     {
                         c.Variant.Id,
@@ -77,10 +87,8 @@ namespace asp.net.Controllers.CustomerController
                 {
                     code = 400,
                     message = "fail",
-                    data = new
-                    {
-                        errors = ModelState.Values.SelectMany(v => v.Errors.Select(b => b.ErrorMessage))
-                    }
+                    errors = ModelState.Values.SelectMany(v => v.Errors.Select(b => b.ErrorMessage))
+
                 };
                 return BadRequest(response);
             }
@@ -114,7 +122,8 @@ namespace asp.net.Controllers.CustomerController
                 cart.Amount += request.Amount;
                 _context.Carts.Update(cart);
                 await _context.SaveChangesAsync();
-                var newCart = await _context.Carts.Where(c => c.CustomerID == customer.Id).Select(c => new
+                var newCart = await _context.Carts.Where(c => c.CustomerID == customer.Id)
+                .Select(c => new
                 {
                     c.Id,
                     c.Amount,
@@ -138,7 +147,7 @@ namespace asp.net.Controllers.CustomerController
                         }
                     }
                 })
-                    .ToListAsync();
+                .ToListAsync();
                 var response = new
                 {
                     code = 200,
@@ -196,9 +205,11 @@ namespace asp.net.Controllers.CustomerController
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<IEnumerable<Cart>>> UpdateCart(int id, int amount)
+        public async Task<ActionResult<IEnumerable<Cart>>> UpdateCart(int id, [FromBody] UpdateCartForm form)
         {
-            var cart = await _context.Carts.FindAsync(id);
+            var user = HttpContext.Items["user"];
+            var customer = await _context.Customers.Where(c => c.User.Username == user).FirstOrDefaultAsync();
+            var cart = await _context.Carts.Where(c => c.Customer.Id == customer.Id && c.Id == id).FirstOrDefaultAsync();
             if (cart == null)
             {
                 var response = new
@@ -209,7 +220,7 @@ namespace asp.net.Controllers.CustomerController
                 };
                 return NotFound(response);
             }
-            if (amount < 0)
+            if (form.Amount < 0)
             {
                 return BadRequest(new
                 {
@@ -218,11 +229,17 @@ namespace asp.net.Controllers.CustomerController
                     errors = "Amount must be greater than 0"
                 });
             }
-            if (amount == 0)
+            if (form.Amount > 0)
+            {
+                cart.Amount = form.Amount;
+            }
+            else
             {
                 _context.Carts.Remove(cart);
-                await _context.SaveChangesAsync();
-                var newCart = await _context.Carts.Where(c => c.Id == id).Select(c => new
+            }
+            await _context.SaveChangesAsync();
+            var newCart = await _context.Carts.Where(c => c.CustomerID == customer.Id)
+                .Select(c => new
                 {
                     c.Id,
                     c.Amount,
@@ -245,51 +262,15 @@ namespace asp.net.Controllers.CustomerController
                             c.Variant.Product.State
                         }
                     }
-                }).ToListAsync();
-                var response = new
-                {
-                    code = 200,
-                    message = "success",
-                    data = new
-                    {
-                        cart = newCart
-                    }
-                };
-                return Ok(response);
-            }
-            cart.Amount = amount;
-            await _context.SaveChangesAsync();
-            var newCart1 = await _context.Carts.Where(c => c.Id == id).Select(c => new
-            {
-                c.Id,
-                c.Amount,
-                variant = new
-                {
-                    c.Variant.Id,
-                    c.Variant.Name,
-                    sale_price = c.Variant.SalePrice,
-                    c.Variant.Discount,
-                    standard_price = c.Variant.StandardPrice,
-                    c.Variant.Image,
-                    c.Variant.SKU,
-                    c.Variant.State,
-                    product = new
-                    {
-                        c.Variant.Product.Id,
-                        c.Variant.Product.Name,
-                        c.Variant.Product.Slug,
-                        c.Variant.Product.Image,
-                        c.Variant.Product.State
-                    }
-                }
-            }).ToListAsync();
+                })
+                .ToListAsync();
             var response1 = new
             {
                 code = 200,
                 message = "success",
                 data = new
                 {
-                    cart = newCart1
+                    cart = newCart
                 }
             };
             return Ok(response1);

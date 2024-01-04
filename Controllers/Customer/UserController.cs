@@ -69,11 +69,32 @@ namespace asp.net.Controllers.CustomerController
                 c.Gender,
                 c.User.Username
             }).FirstOrDefaultAsync();
-            var cart = await _context.Carts.Where(c => c.CustomerID == customer.Id).Select(c => new
-            {
-                c.Variant.Product,
-                c.Amount
-            }).ToListAsync();
+            var cart = await _context.Carts.Where(c => c.CustomerID == customer.Id)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Amount,
+                    variant = new
+                    {
+                        c.Variant.Id,
+                        c.Variant.Name,
+                        sale_price = c.Variant.SalePrice,
+                        c.Variant.Discount,
+                        standard_price = c.Variant.StandardPrice,
+                        c.Variant.Image,
+                        c.Variant.SKU,
+                        c.Variant.State,
+                        product = new
+                        {
+                            c.Variant.Product.Id,
+                            c.Variant.Product.Name,
+                            c.Variant.Product.Slug,
+                            c.Variant.Product.Image,
+                            c.Variant.Product.State
+                        }
+                    }
+                })
+                .ToListAsync();
             var response = new
             {
                 code = 200,

@@ -14,12 +14,12 @@ namespace asp.net.Models
         [Required]
         [Column("customer_id")]
         public int CustomerID { get; set; }
-        public Customer Customer { get; set; }
+        public Customer? Customer { get; set; }
 
         [Required]
         [Column("variant_id")]
         public long VariantId { get; set; }
-        public ProductVariants Variant { get; set; }
+        public ProductVariants? Variant { get; set; }
 
         [Required]
         [Column("amount")]

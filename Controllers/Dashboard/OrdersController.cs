@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using asp.net.Data;
@@ -10,6 +6,7 @@ using asp.net.Models;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
+using asp.net.Services;
 
 namespace asp.net.Controllers.Dashboard
 {
@@ -23,7 +20,7 @@ namespace asp.net.Controllers.Dashboard
         [DataType(DataType.Date)]
         public string? end_date { get; set; }
     }
-    public class SearchOrderForm: SearchForm
+    public class SearchOrderForm : SearchForm
     {
         [JsonPropertyName("state")]
         public string? state { get; set; }
@@ -60,7 +57,7 @@ namespace asp.net.Controllers.Dashboard
     {
         [JsonPropertyName("amount")]
         public int Amount { get; set; }
-        
+
         [JsonPropertyName("serial_number")]
         public string? SerialNumber { get; set; }
     }
@@ -94,59 +91,12 @@ namespace asp.net.Controllers.Dashboard
     public class OrdersController : ControllerBase
     {
         private readonly DbCtx _context;
+        private readonly IMailService _mailService;
 
-        public OrdersController(DbCtx context)
+        public OrdersController(DbCtx context, IMailService mailSerivce)
         {
             _context = context;
-        }
-
-        [HttpGet("orders/statistics")]
-        public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
-        {
-            if (_context.Orders == null)
-            {
-                return NotFound();
-            }
-            if (!ModelState.IsValid)
-            {
-                var response = new
-                {
-                    code = 400,
-                    message = "Fail in GetStatisticsOrders",
-                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
-                };
-                return BadRequest(response);
-            }
-            var statisticorders = new List<object>();
-            if (request.start_date != null && request.end_date != null)
-            {
-
-                foreach (var state in Enum.GetValues(typeof(OrderState)))
-                {
-                    var statistic = new
-                    {
-                        count = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Count(),
-                        total_order = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)),
-                        total_sale = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
-                        total_standard = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.StandardPrice)),
-                        total_amount = _context.Orders.Where(o => o.State == state.ToString() && o.CreatedAt >= DateTime.Parse(request.start_date) && o.CreatedAt <= DateTime.Parse(request.end_date)).Sum(o => o.OrderItems.Sum(i => i.Amount)),
-                        state = state.ToString(),
-                        total = _context.Orders.Where(o => o.State == state.ToString()).Sum(o => o.OrderItems.Sum(i => i.Total)),
-                    };
-                    statisticorders.Add(statistic);
-                }
-            }
-
-            var responseSuccess = new
-            {
-                code = 200,
-                message = "Success in GetStatisticsOrders",
-                data = new
-                {
-                    statisticorders,
-                }
-            };
-            return Ok(responseSuccess);
+            _mailService = mailSerivce;
         }
 
 
@@ -244,7 +194,7 @@ namespace asp.net.Controllers.Dashboard
                             created_at = i.ProductVariant.Created_at,
                             updated_at = i.ProductVariant.Updated_at,
                             sold = i.Order.OrderItems.Where(i => i.OrderId == i.Id).Count(),
-                            
+
                             product = new
                             {
                                 id = i.ProductVariant.Product.Id,
@@ -262,7 +212,7 @@ namespace asp.net.Controllers.Dashboard
                     created_at = o.CreatedAt,
                     updated_at = o.UpdatedAt,
                 }); ;
-           
+
             if (request.filter != null && request.keyword != null)
             {
                 switch (request.filter)
@@ -289,7 +239,7 @@ namespace asp.net.Controllers.Dashboard
             if (request.state != null)
             {
                 orders = orders.Where(o => o.State == request.state);
-            }    
+            }
             if (request.start_date != null && request.end_date != null)
             {
                 orders = orders.Where(o => o.items.Any(i => i.variant.created_at >= DateTime.Parse(request.start_date) && i.variant.created_at <= DateTime.Parse(request.end_date)));
@@ -413,10 +363,10 @@ namespace asp.net.Controllers.Dashboard
                                 standard_price = i.ProductVariant.StandardPrice,
                             }
                         }
-                        
+
                     }),
                 }).FirstOrDefault();
-        
+
             if (order == null)
             {
                 return NotFound(new
@@ -429,7 +379,7 @@ namespace asp.net.Controllers.Dashboard
             {
                 code = 200,
                 data = order
-            }; 
+            };
 
             return Ok(response);
         }
@@ -463,33 +413,95 @@ namespace asp.net.Controllers.Dashboard
                 };
                 return NotFound(response);
             }
-            if(request.PaymentMethod != null)
+            if (request.PaymentMethod != null)
             {
                 order.PaymentMethod = request.PaymentMethod;
             }
-            if(request.TrackingNo != null)
+            if (request.TrackingNo != null)
             {
                 order.TrackingNo = request.TrackingNo;
             }
-            if(request.Note != null)
+            if (request.Note != null)
             {
                 order.Note = request.Note;
             }
-            if(request.State != null)
+            if (request.State != null)
             {
                 order.State = request.State;
+                var order_history = new OrderHistories
+                {
+                    OrderId = order.Id,
+                    State = request.State,
+                    CreatedAt = DateTime.Now,
+                };
+                await _context.OrderHistories.AddAsync(order_history);
+
             }
-            if(request.PaymentState != null)
+            if (request.PaymentState != null)
             {
                 order.PaymentState = request.PaymentState;
             }
             if(request.State == OrderState.Failed.ToString())
             {
-                
+                var newOrder = new Order
+                {
+                    CustomerId = order.CustomerId,
+                    EmployeeId = order?.EmployeeId ?? null,
+                    PaymentMethod = order.PaymentMethod,
+                    ShoppingMethod = order.ShoppingMethod,
+                    PaymentState = order.PaymentState,
+                    State = OrderState.Pending.ToString(),
+                    Note = "<p>Đơn hàng từ: </p>" + order.Id,
+                    OrderItems = (ICollection<OrderItems>)order.OrderItems.Where(OrderItems => OrderItems.OrderId == order.Id).Select(i => new
+                    {
+                        order_id = i.OrderId,
+                        variant_id = i.VariantId,
+                        amount = i.Amount,
+                        sale_price = i.SalePrice,
+                    }
+                    ),
+                    CreatedAt = DateTime.Now,
+                };
             }
 
             order.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
+
+
+            if (request.State == "confirmed")
+            {
+                order = await _context.Orders
+                    .Where(o => o.Id == id)
+                    .Include(o => o.Customer)
+                    .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.Product)
+                    .FirstOrDefaultAsync();
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
+                var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
+                content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                    order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+                content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+                foreach (var item in order.OrderItems)
+                {
+                    string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                    var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                    emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                    emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                    emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                    emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                    emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                    emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                    content += "<br>" + emailTemplateText;
+                }
+                var HTMLData = new HTMLMailData
+                {
+                    Email = order.Customer.Email,
+                    Subject = "Xác nhận đơn hàng #" + order.Id,
+                    Content = content,
+                };
+                _mailService.SendHTMLMailAsync(HTMLData);
+            }
             var responseSuccess = new
             {
                 code = 200,
@@ -519,7 +531,7 @@ namespace asp.net.Controllers.Dashboard
         [HttpPost("orders")]
         public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromBody] NewDashOrderForm request)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 var response = new
                 {
@@ -542,10 +554,11 @@ namespace asp.net.Controllers.Dashboard
                 State = OrderState.Draft.ToString(),
                 CreatedAt = DateTime.Now,
             };
+
             await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
 
-            if(request.Items != null && request.Items.Count > 0)
+            if (request.Items != null && request.Items.Count > 0)
             {
                 var items = new List<OrderItems>();
                 foreach (var item in request.Items)
@@ -577,6 +590,30 @@ namespace asp.net.Controllers.Dashboard
                 await _context.OrderItems.AddRangeAsync(items);
             }
             await _context.SaveChangesAsync();
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
+            var content = "<p>Đơn hàng của bạn đã được xác nhận và cập nhật thông tin</p>";
+            content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+            content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+            foreach (var item in order.OrderItems)
+            {
+                string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                content += "<br>" + emailTemplateText;
+            }
+            var HTMLData = new HTMLMailData
+            {
+                Email = order.Customer.Email,
+                Subject = "Xác nhận đơn hàng #" + order.Id,
+                Content = content,
+            };
+            _mailService.SendHTMLMailAsync(HTMLData);
             var responseSuccess = new
             {
                 code = 200,
@@ -614,7 +651,7 @@ namespace asp.net.Controllers.Dashboard
             var variant = await _context.ProductVariants.Where(ProductVariants => ProductVariants.Id == request.VariantId).FirstOrDefaultAsync();
             var order = await _context.Orders.Where(Orders => Orders.Id == id).FirstOrDefaultAsync();
 
-            if(order == null)
+            if (order == null)
             {
                 var response = new
                 {
@@ -624,7 +661,7 @@ namespace asp.net.Controllers.Dashboard
                 return BadRequest(response);
             }
 
-            if(order.State == OrderState.Confirmed.ToString())
+            if (order.State == OrderState.Confirmed.ToString())
             {
                 var response = new
                 {
@@ -832,6 +869,43 @@ namespace asp.net.Controllers.Dashboard
                         orderItem.UpdatedAt,
                     }
                 }
+            };
+            return Ok(responseSuccess);
+        }
+        [HttpGet("orders/statistics")]
+        public async Task<ActionResult<IEnumerable<Order>>> GetStatisticsOrders([FromQuery] SearchStatisticDate request)
+        {
+            if (_context.Orders == null)
+            {
+                return NotFound();
+            }
+            if (!ModelState.IsValid)
+            {
+                var response = new
+                {
+                    code = 400,
+                    message = "Fail in GetStatisticsOrders",
+                    errors = ModelState.Values.SelectMany(t => t.Errors.Select(e => e.ErrorMessage))
+                };
+                return BadRequest(response);
+            }
+
+            var statisticOrders = _context.Orders
+                .GroupBy(o => o.State)
+                .Select(o => new
+                {
+                    state = o.Key,
+                    total_order = o.Count(),
+                    total_sale = o.Sum(o => o.OrderItems.Sum(i => i.SalePrice)),
+                    total_amount = o.Sum(o => o.OrderItems.Sum(i => i.Amount)),
+                })
+               .ToList();
+
+            var responseSuccess = new
+            {
+                code = 200,
+                message = "Success in GetStatisticsOrders",
+                data = statisticOrders
             };
             return Ok(responseSuccess);
         }

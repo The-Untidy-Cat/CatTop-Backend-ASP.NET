@@ -1,5 +1,6 @@
 ﻿using asp.net.Data;
 using asp.net.Models;
+using asp.net.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Build.Framework;
@@ -47,10 +48,12 @@ namespace asp.net.Controllers.CustomerController
     public class OrderController : ControllerBase
     {
         private readonly DbCtx _context;
+        private readonly IMailService _mailService;
 
-        public OrderController(DbCtx context)
+        public OrderController(DbCtx context, IMailService mailService)
         {
             _context = context;
+            _mailService = mailService;
         }
 
         [HttpGet]
@@ -108,6 +111,7 @@ namespace asp.net.Controllers.CustomerController
         public async Task<ActionResult<IEnumerable<Order>>> GetOrderDetail(int id)
         {
             var user = HttpContext.Items["user"];
+            Console.WriteLine(user);
             var order = _context.Orders
                 .Where(o => o.Id == id && o.Customer.User.Username == user)
                 .Select(o => new
@@ -139,20 +143,20 @@ namespace asp.net.Controllers.CustomerController
                         oi.Rating,
                         oi.Review
                     }).ToList(),
-                    history = o.OrderHistories.Select(h => new
+                    histories = o.OrderHistories.Select(h => new
                     {
                         h.State,
                         created_at = h.CreatedAt
                     }).ToList(),
-                    address = new
+                    address = o.AddressBook != null ? new
                     {
-                        o.AddressBook.Name,
+                        name = o.AddressBook.Name,
                         address_line = o.AddressBook.AddressLine,
-                        o.AddressBook.Phone,
-                        o.AddressBook.Province,
-                        o.AddressBook.District,
-                        o.AddressBook.Ward
-                    },
+                        phone = o.AddressBook.Phone,
+                        province = o.AddressBook.Province,
+                        district = o.AddressBook.District,
+                        ward = o.AddressBook.Ward
+                    } : null,
                     total = o.OrderItems.Where(oi => oi.OrderId == o.Id).Sum(oi => oi.Total)
                 }).FirstOrDefault();
             if (order == null)
@@ -295,13 +299,48 @@ namespace asp.net.Controllers.CustomerController
                 _context.Carts.RemoveRange(cart);
             }
             await _context.SaveChangesAsync();
+            var history = new OrderHistories
+            {
+                OrderId = order.Id,
+                State = OrderState.Pending.ToString(),
+                CreatedAt = DateTime.Now
+            };
+            await _context.OrderHistories.AddAsync(history);
+            await _context.SaveChangesAsync();
+
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/order_item.html");
+            var content = "<p>Đơn hàng của bạn đã được tạo thành công</p>";
+            content += "<p>Để xem chi tiết đơn hàng, vui lòng truy cập vào <strong><a href='https://cattop.theuntidycat.tech/user/orders/" + order.Id + "'>đây</a></strong></p>";
+            content += "<p>Thông tin đơn hàng:<br>- Mã đơn hàng: " +
+                order.Id + "<br>- Ngày tạo: " + order.CreatedAt + "<br>- Thành tiền: " + CustomService.FormatVietnameseCurrency((double)order?.OrderItems?.Sum(oi => oi.Total));
+            content += "<p>Đơn hàng của bạn có các sản phẩm sau:</p>";
+            foreach (var item in order.OrderItems)
+            {
+                string emailTemplateText = await System.IO.File.ReadAllTextAsync(filePath);
+                var product = await _context.Products.Where(p => p.Id == item.ProductVariant.ProductID).FirstOrDefaultAsync();
+                emailTemplateText = emailTemplateText.Replace("{#product-image#}", item.ProductVariant.Image);
+                emailTemplateText = emailTemplateText.Replace("{#product-name#}", product.Name);
+                emailTemplateText = emailTemplateText.Replace("{#variant-name#}", item?.ProductVariant.Name);
+                emailTemplateText = emailTemplateText.Replace("{#sale_price#}", CustomService.FormatVietnameseCurrency((double)item.SalePrice));
+                emailTemplateText = emailTemplateText.Replace("{#amount#}", item.Amount.ToString());
+                emailTemplateText = emailTemplateText.Replace("{#total#}", CustomService.FormatVietnameseCurrency((double)item.Total));
+                content += "<br>" + emailTemplateText;
+            }
+            var HTMLData = new HTMLMailData
+            {
+                Email = customer.Email,
+                Subject = "CatTop đã nhận đơn hàng #" + order.Id,
+                Content = content,
+            };
+            _mailService.SendHTMLMailAsync(HTMLData);
+
             var responseSuccess = new
             {
                 code = 200,
                 message = "success",
                 data = new
                 {
-                    order = new
+                    detail = new
                     {
                         order.Id,
                         created_at = order.CreatedAt,

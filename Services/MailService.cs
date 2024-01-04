@@ -33,7 +33,7 @@ namespace asp.net.Services
 
                     emailMessage.Subject = htmlMailData.Subject;
 
-                    string filePath = Directory.GetCurrentDirectory() + "\\Templates\\index.html";
+                    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "Templates/index.html");
 
                     string emailTemplateText = await File.ReadAllTextAsync(filePath);
 
