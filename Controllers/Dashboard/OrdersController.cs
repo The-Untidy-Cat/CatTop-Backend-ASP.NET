@@ -128,6 +128,7 @@ namespace asp.net.Controllers.Dashboard
                     items = o.OrderItems.Where(OrderItems => OrderItems.OrderId == o.Id).Select(i => new
                     {
                         order_id = i.OrderId,
+                        serial_number = i.SerialNumber,
                         variant_id = i.VariantId,
                         amount = i.Amount,
                         sale_price = i.SalePrice,
