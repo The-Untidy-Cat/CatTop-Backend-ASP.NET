@@ -341,6 +341,7 @@ namespace asp.net.Controllers.Dashboard
                     {
                         id = i.Id,
                         variant_id = i.VariantId,
+                        serial_number = i.SerialNumber,
                         amount = i.Amount,
                         standard_price = i.StandardPrice,
                         sale_price = i.SalePrice,
